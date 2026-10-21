@@ -1,0 +1,27 @@
+{
+  "hooks": {
+    "SubagentStop": [
+      {
+        "matcher": "^(web_ui|web_domain|web_backend|web_data)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"try { const root = require('node:child_process').execFileSync('git', ['rev-parse', '--show-toplevel'], {encoding:'utf8'}).trim(); require(require('node:path').join(root, '.codex/hooks/verify-completion.cjs')).runCommand(); } catch (error) { process.stderr.write(String(error)); process.exitCode = 2; }\"",
+            "timeout": 300
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"try { const root = require('node:child_process').execFileSync('git', ['rev-parse', '--show-toplevel'], {encoding:'utf8'}).trim(); require(require('node:path').join(root, '.codex/hooks/verify-completion.cjs')).runCommand(); } catch (error) { process.stderr.write(String(error)); process.exitCode = 2; }\"",
+            "timeout": 300
+          }
+        ]
+      }
+    ]
+  }
+}

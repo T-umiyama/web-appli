@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>UI指摘ツール | WEB-APPLI</title><style>
+
+:root{--ink:#161616;--paper:#f4f1e8;--yellow:#f8ed48;--pink:#f7acd6;--purple:#b7a8f5;--red:#dc343c;--line:2px solid #161616;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;color:var(--ink);background:var(--paper);font-synthesis:none}*{box-sizing:border-box}body{margin:0;height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden}button,input,select,textarea{font:inherit}button{border:var(--line);background:white;color:var(--ink);padding:9px 13px;font-size:12px;font-weight:650;cursor:pointer;box-shadow:3px 3px 0 var(--ink)}button:hover:not(:disabled){transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}button:active:not(:disabled){transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}button:disabled{opacity:.4;cursor:not-allowed}button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid #6046d7;outline-offset:4px}button.primary{background:var(--yellow)}button.pink{background:var(--pink)}button.danger{color:#a01725}a{color:inherit}[hidden]{display:none!important}.topbar{min-height:69px;display:flex;align-items:center;gap:17px;border-bottom:3px solid var(--ink);padding:13px 23px;background:var(--yellow)}.home-link{text-decoration:none;font-size:12px;border-right:2px solid var(--ink);padding-right:17px;white-space:nowrap}.logo{display:flex;gap:10px;align-items:center;font-size:18px;font-weight:900;letter-spacing:-.045em;white-space:nowrap}.logo-mark{display:inline-grid;place-items:center;background:white;border:2px solid var(--ink);width:31px;height:31px;box-shadow:3px 3px var(--ink);font-size:22px}.top-meta{margin-left:auto;display:flex;gap:12px;align-items:center;font:10px monospace;letter-spacing:.05em}.version{border:1px solid var(--ink);padding:5px 8px}.toolbar{display:flex;align-items:center;gap:11px;padding:15px 23px 17px;border-bottom:var(--line);background:#fff;flex-wrap:wrap}.toolbar button{white-space:nowrap}.separator{height:25px;width:1px;background:#b9b5ac;margin:0 4px}.source-name{max-width:290px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:#555;margin-right:auto}.mode-label{display:flex;align-items:center;gap:7px}.mode-dot{width:8px;height:8px;background:#a8a8a8;border:1px solid var(--ink)}[aria-pressed=true] .mode-dot{background:#e03542}#selectMode[aria-pressed=true]{background:var(--purple)}kbd{font:10px monospace;border:1px solid #555;background:white;padding:1px 4px;margin-left:5px}.workspace{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:0}.preview{display:flex;flex-direction:column;min-width:0;min-height:0;border-right:3px solid var(--ink)}.panel-heading{height:41px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 18px;border-bottom:var(--line);font:700 10px monospace;letter-spacing:.08em;background:#ede9df}.preview-status{font-family:inherit;font-size:10px;letter-spacing:0;font-weight:400;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.stage{position:relative;flex:1;min-height:0;padding:20px;background-color:#e6e1d4;background-image:radial-gradient(#bdb8ad .8px,transparent .8px);background-size:12px 12px;display:flex;align-items:stretch}.frame-wrap{position:relative;min-width:0;min-height:0;flex:1;background:white;border:2px solid var(--ink);box-shadow:5px 5px var(--ink);overflow:hidden}iframe{display:block;border:0;width:100%;height:100%;background:white}.glass{position:absolute;inset:0;z-index:20;cursor:crosshair}.overlay{position:absolute;inset:0;z-index:30;pointer-events:none;overflow:hidden}.marker{position:absolute;border:2px solid var(--red);pointer-events:none}.marker.active{border-width:3px;box-shadow:0 0 0 1px white}.badge{position:absolute;pointer-events:auto;padding:1px 5px;min-width:22px;height:22px;left:-2px;top:-2px;background:var(--red);color:white;border:1px solid white;box-shadow:1px 1px 0 #161616;font:800 11px/18px monospace;cursor:pointer}.hover-box{position:absolute;border:2px solid #2484ea;background:#2484ea22;pointer-events:none}.hover-label{position:absolute;background:#1c5a99;color:#fff;padding:5px 8px;font:10px monospace;max-width:90%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.blank{position:absolute;inset:0;display:grid;place-items:center;background:#faf8f2;z-index:5}.blank-content{max-width:440px;padding:25px;text-align:center}.blank-icon{width:76px;height:67px;display:grid;place-items:center;margin:0 auto 30px;background:var(--purple);border:3px solid var(--ink);box-shadow:6px 6px var(--ink);font-size:36px;font-weight:800;transform:rotate(-5deg)}.blank h1{font-size:25px;line-height:1.6;letter-spacing:-.04em;margin:0 0 13px}.blank p{font-size:12px;line-height:2;color:#57534d;margin:0}.drop-label{display:inline-block;border:1px solid var(--ink);background:var(--yellow);padding:7px 14px;margin-top:24px;font:700 10px monospace}.steps{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:10px;margin-top:21px;font-size:10px}.steps b{background:var(--pink);border:1px solid var(--ink);padding:2px 5px;margin-right:4px}.sidebar{display:flex;flex-direction:column;min-height:0;background:#fff}.sidebar .panel-heading{background:var(--pink);height:41px;flex-shrink:0}.count{display:inline-grid;place-items:center;min-width:20px;height:20px;border:1px solid var(--ink);background:#fff;font:700 10px monospace}.list{overflow:auto;flex:1;min-height:0;padding:14px;scroll-behavior:smooth}.list-empty{padding:40px 18px;text-align:center;color:#66615b;font-size:11px;line-height:2.1}.list-empty strong{display:block;font-size:13px;color:var(--ink);margin-bottom:8px}.annotation{border:2px solid var(--ink);margin-bottom:13px;background:white;box-shadow:3px 3px var(--ink)}.annotation.active{background:#fffdeb;border-color:#161616}.ann-top{display:flex;align-items:center;gap:8px;padding:10px 10px 8px;cursor:pointer}.ann-num{font:800 11px monospace;background:var(--red);color:white;padding:4px 6px;border:1px solid var(--ink)}.ann-label{font:10px monospace;flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.delete{font:15px monospace;border:0;box-shadow:none;padding:2px 5px;background:transparent;color:#8b2633}.delete:hover:not(:disabled){box-shadow:none;transform:none;background:#f7d4d4}.ann-state{font-size:9px;color:#9d3038;padding:0 10px 7px}.ann-input{display:block;width:calc(100% - 20px);margin:0 10px 10px;padding:9px;border:1px solid #a5a098;background:#fff;font-size:12px;line-height:1.8;resize:vertical;min-height:72px}.ann-hint{font-size:9px;color:#777168;margin:-4px 10px 9px}.side-footer{border-top:var(--line);padding:15px;background:var(--paper)}.side-footer button{width:100%;padding:12px 8px}.side-footer p{font-size:9px;text-align:center;color:#686259;margin:10px 0 0}.bottom-bar{min-height:30px;border-top:var(--line);display:flex;align-items:center;gap:20px;justify-content:space-between;padding:7px 22px;font-size:9px;color:#5a554e;background:#fff}.warning{background:#fff0ca;padding:9px 18px;border-bottom:1px solid #d5b65e;font-size:11px;line-height:1.7;max-height:110px;overflow:auto}.warning summary{cursor:pointer;font-weight:700}.warning ul{margin:6px 0 0;padding-left:18px}.toast{position:fixed;bottom:44px;left:50%;transform:translateX(-50%);z-index:100;background:var(--ink);color:white;max-width:min(750px,90vw);padding:13px 20px;font-size:12px;line-height:1.7;border:2px solid var(--ink);box-shadow:4px 4px var(--purple)}.toast button{font-size:10px;margin-left:14px;padding:4px 8px;background:var(--yellow);box-shadow:none}.drop-target{position:fixed;inset:0;background:#b7a8f5e8;z-index:90;border:8px dashed var(--ink);display:grid;place-items:center;font-size:26px;font-weight:800;pointer-events:none}.resume{padding:10px 23px;background:var(--purple);border-bottom:var(--line);display:flex;align-items:center;gap:15px;font-size:12px}.resume button{font-size:11px}dialog{border:3px solid var(--ink);box-shadow:9px 9px var(--ink);background:var(--paper);padding:30px;max-width:560px;width:calc(100% - 50px)}dialog::backdrop{background:#16161665}dialog h2{font-size:20px;margin:0 0 10px}dialog p{font-size:12px;line-height:1.9}dialog select{display:block;width:100%;padding:12px;border:2px solid var(--ink);background:#fff;margin:20px 0}dialog .actions{display:flex;justify-content:flex-end;gap:12px}dialog textarea{width:100%;height:240px;border:2px solid var(--ink);font:11px/1.8 monospace;padding:12px}details.help{font-size:10px}details.help summary{cursor:pointer}.flash{animation:flash .3s steps(2,end) 4}@keyframes flash{50%{opacity:.1}}@media(max-width:1050px){.top-meta>span:first-child{display:none}.workspace{grid-template-columns:minmax(0,1fr) 290px}.toolbar{padding:12px 16px;gap:9px}.source-name{max-width:180px}.toolbar button{font-size:11px;padding:8px 10px}.topbar{padding:12px 16px}.stage{padding:12px}}@media(max-width:700px){body{height:auto;min-height:100dvh;overflow:auto}.topbar{flex-wrap:wrap;gap:10px}.logo{font-size:16px}.top-meta{display:none}.toolbar{position:sticky;top:0;z-index:40}.source-name{order:10;width:100%;max-width:none}.workspace{display:flex;flex-direction:column;flex:none}.preview{border-right:0;border-bottom:3px solid var(--ink);height:60vh;min-height:350px}.sidebar{min-height:380px}.list{max-height:500px}.bottom-bar{flex-wrap:wrap;gap:6px;font-size:8px}.blank h1{font-size:20px}.blank-icon{margin-bottom:18px}.separator{display:none}.home-link{font-size:11px}.toast{bottom:15px;width:90vw}.stage{padding:10px}}
+
+</style></head><body>
+
+<header class="topbar"><a class="home-link" href="../../index.html">← HOME</a><div class="logo"><span class="logo-mark" aria-hidden="true">↖</span>UI指摘ツール</div><div class="top-meta"><span>POINT IT. WRITE IT. FIX IT.</span><span class="version">LOCAL / MVP</span></div></header>
+<div class="toolbar"><button id="openDir" class="primary" type="button">▣ フォルダを開く</button><button id="openFile" type="button">HTMLを開く</button><button id="reload" type="button" disabled>↻ 再読込</button><span class="source-name" id="sourceName">ファイルはまだ読み込まれていません</span><span class="separator"></span><button id="selectMode" class="mode-label" type="button" aria-pressed="false" disabled><span class="mode-dot"></span><span id="modeText">要素を選択</span><kbd>Q</kbd></button><button id="reset" class="danger" type="button" disabled>リセット</button></div>
+<div id="resume" class="resume" hidden><span id="resumeText"></span><button id="resumeOpen" type="button">前回の対象を開く</button></div>
+<details id="warnings" class="warning" hidden><summary id="warningSummary">読み込み時の注意</summary><ul id="warningList"></ul></details>
+<div class="workspace"><section class="preview" aria-label="対象アプリのプレビュー"><div class="panel-heading"><span>01 / PREVIEW</span><span id="previewStatus" class="preview-status">フォルダ・HTMLをここへドロップ</span></div><div class="stage"><div id="frameWrap" class="frame-wrap"><iframe id="frame" title="読み込んだアプリのプレビュー" srcdoc="<!doctype html><html lang='ja'><title>プレビュー</title></html>"></iframe><div id="glass" class="glass" hidden aria-hidden="true"></div><div id="overlay" class="overlay"><div id="hoverBox" class="hover-box" hidden></div><div id="hoverLabel" class="hover-label" hidden></div></div><div id="blank" class="blank"><div class="blank-content"><div class="blank-icon" aria-hidden="true">↖</div><h1>気になるところを、<br>そのまま指摘。</h1><p>自分で作ったHTMLアプリを開いて、<br>画面の要素にコメントを残そう。</p><div class="drop-label">DROP YOUR HTML OR FOLDER HERE</div><div class="steps"><span><b>1</b>読み込む</span><span>→</span><span><b>2</b>選んで指摘</span><span>→</span><span><b>3</b>AIに渡す</span></div></div></div></div></div></section>
+<aside class="sidebar" aria-labelledby="listTitle"><div class="panel-heading"><span id="listTitle">02 / 指摘リスト</span><span id="annCount" class="count">0</span></div><div id="list" class="list"><div class="list-empty"><strong>まだ、指摘はありません。</strong>アプリを読み込んだら <kbd>Q</kbd> で選択。<br>気になる要素をクリックしてください。</div></div><div class="side-footer"><button id="copy" class="pink" type="button" disabled>修正指示をコピー ↗</button><p>要素の情報と指摘を、AI向けMarkdownに。</p></div></aside></div>
+<footer class="bottom-bar"><span id="saveStatus" role="status">指摘はこのブラウザに保存されます</span><span>Q：選択の切替 ／ Esc：選択を終了 ／ Enter：指摘を確定</span><span>PC Chrome向け</span></footer>
+<input id="dirInput" type="file" webkitdirectory multiple hidden><input id="fileInput" type="file" accept=".html,.htm,text/html" hidden>
+<div id="toast" class="toast" role="status" hidden></div><div id="dropTarget" class="drop-target" hidden>ここにドロップ ↙</div>
+<dialog id="htmlDialog"><h2>表示するHTMLを選ぶ</h2><p>フォルダに複数のHTMLが見つかりました。</p><form method="dialog"><label for="htmlChoice">対象ファイル</label><select id="htmlChoice"></select><div class="actions"><button value="cancel">キャンセル</button><button value="open" class="primary">このHTMLを開く ↗</button></div></form></dialog>
+<dialog id="exportDialog"><h2>修正指示のMarkdown</h2><p>自動コピーが使えない場合は、下の内容を選択してコピーしてください。</p><textarea id="exportText" aria-label="修正指示のMarkdown" readonly></textarea><form method="dialog" class="actions"><button value="close" class="primary">閉じる</button></form></dialog>
+
+<script>
+
+'use strict';
+(function () {
+const $ = id => document.getElementById(id);
+const frame = $('frame'), wrap = $('frameWrap'), overlay = $('overlay'), glass = $('glass');
+const SKIP = new Set(['node_modules','.git','.codex','.claude','.agents','.DS_Store']);
+const MIME = {html:'text/html',htm:'text/html',css:'text/css',js:'text/javascript',json:'application/json',svg:'image/svg+xml',png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',webp:'image/webp',ico:'image/x-icon',woff:'font/woff',woff2:'font/woff2',txt:'text/plain',mp4:'video/mp4',mp3:'audio/mpeg',pdf:'application/pdf'};
+const state = {v:1,source:null,htmlPath:'',nextId:1,annotations:[]};
+let vfs = new Map(), urls = [], blobCache = new Map(), warnings = new Set();
+let mode = false, activeId = null, hovered = null, loaded = false, busy = false, renderToken = 0;
+let frameWindow = null, restoreScroll = {x:0,y:0}, db = null, saveTimer, saveQueue = Promise.resolve();
+let toastTimer, undo = null, undoTimer, loopCount = 0, dirFallback = false, fileFallback = false;
+let markers = new Map(), pendingOpen = null;
+function el(tag, cls, text) { const n=document.createElement(tag); if(cls)n.className=cls; if(text!==undefined)n.textContent=text; return n; }
+function toast(message, action) {
+ clearTimeout(toastTimer); const box=$('toast');box.replaceChildren(document.createTextNode(message));box.hidden=false;
+ if(action){const b=el('button','',action.label);b.type='button';b.onclick=()=>{action.run();box.hidden=true;};box.append(b);}
+ toastTimer=setTimeout(()=>box.hidden=true,action?6000:5000);
+}
+function warn(message) { warnings.add(message); updateWarnings(); }
+function updateWarnings() {
+ $('warnings').hidden=warnings.size===0;$('warningSummary').textContent='読み込み時の注意（'+warnings.size+'件）';
+ $('warningList').replaceChildren(...[...warnings].map(w=>el('li','',w)));
+}
+function editable(target) { return !!target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName) || !!target.closest?.('[contenteditable="true"]')); }
+function modalOpen() { return !!document.querySelector('dialog[open]'); }
+function snapshotState(includeHandle=true) {
+ return {v:1,source:state.source?{kind:state.source.kind,name:state.source.name,handle:includeHandle?(state.source.handle||null):null}:null,
+ htmlPath:state.htmlPath,nextId:state.nextId,annotations:state.annotations.map(a=>({id:a.id,comment:a.comment,snap:{...a.snap}}))};
+}
+function openDb() {
+ return new Promise((resolve,reject)=>{
+  if(!globalThis.indexedDB){reject(new Error('IndexedDBが利用できません。'));return;}
+  const r=indexedDB.open('ui-review-tool',1);
+  r.onupgradeneeded=()=>r.result.createObjectStore('kv');
+  r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);
+ });
+}
+function dbWrite(value) {
+ return new Promise((resolve,reject)=>{
+  let tx;try{tx=db.transaction('kv','readwrite');tx.objectStore('kv').put(value,'state');}catch(e){reject(e);return;}
+  tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('保存が中断されました。'));
+ });
+}
+function saveNow() {
+ clearTimeout(saveTimer);if(!db)return Promise.resolve();
+ const value=snapshotState();
+ saveQueue=saveQueue.then(async()=>{
+  try { await dbWrite(value);$('saveStatus').textContent='保存済み · このブラウザのIndexedDB'; }
+  catch(e){
+   if(value.source?.handle){
+    value.source.handle=null;
+    try{await dbWrite(value);$('saveStatus').textContent='指摘は保存済み · ファイル参照は保存できませんでした';toast('指摘のみ保存しました。次回は同じ対象を開き直してください。');return;}catch(_){}
+   }
+   $('saveStatus').textContent='保存に失敗 · この画面を閉じる前に修正指示をコピーしてください';toast('保存できませんでした。修正指示をコピーして退避してください。');
+  }
+ });return saveQueue;
+}
+function persist() { $('saveStatus').textContent='保存中…';clearTimeout(saveTimer);saveTimer=setTimeout(saveNow,250); }
+function normalizePath(value) {
+ const parts=[];for(const p of value.replace(/\\/g,'/').split('/')){if(!p||p==='.')continue;if(p==='..'){if(!parts.length)return null;parts.pop();}else parts.push(p);}return parts.join('/');
+}
+function localRef(ref, base) {
+ if(!ref || /^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(ref))return null;
+ const clean=ref.split(/[?#]/)[0];let decoded;try{decoded=decodeURIComponent(clean);}catch(_){decoded=clean;}
+ const path=normalizePath((decoded.startsWith('/')?'':base.split('/').slice(0,-1).join('/')+'/')+decoded);
+ if(path===null)return null;return {path,suffix:ref.slice(clean.length)};
+}
+function fileMime(name,file) {return file.type||MIME[name.split('.').pop().toLowerCase()]||'application/octet-stream';}
+async function getFile(name) {const entry=vfs.get(name);if(!entry){warn('参照ファイルが見つかりません: '+name);return null;}return entry.getFile?entry.getFile():entry;}
+async function replaceAsync(text, regex, replacer) {
+ const matches=[...text.matchAll(regex)];const values=await Promise.all(matches.map(replacer));
+ for(let i=matches.length-1;i>=0;i--){const m=matches[i];text=text.slice(0,m.index)+values[i]+text.slice(m.index+m[0].length);}return text;
+}
+async function rewriteCss(text,base,stack=[]) {
+ text=await replaceAsync(text,/@import\s+(["'])([^"']+)\1\s*([^;]*);/gi,async m=>{
+  const ref=localRef(m[2],base);if(!ref)return m[0];const url=await blobFor(ref.path,stack);return '@import url("'+url+'") '+m[3]+';';
+ });
+ return replaceAsync(text,/url\(\s*(?:(["'])(.*?)\1|([^)]*))\s*\)/gi,async m=>{
+  const value=(m[2]===undefined?m[3]:m[2]).trim(),ref=localRef(value,base);if(!ref)return m[0];
+  return 'url("'+await blobFor(ref.path,stack)+ref.suffix+'")';
+ });
+}
+async function blobFor(name,stack=[]) {
+ if(stack.includes(name)){warn('循環するCSS参照を省略しました: '+name);return 'data:text/css,';}
+ if(blobCache.has(name))return blobCache.get(name);
+ const job=(async()=>{
+  const file=await getFile(name);if(!file)return 'data:application/octet-stream,';
+  let content=file;
+  if(/\.css$/i.test(name))content=await rewriteCss(await file.text(),name,[...stack,name]);
+  const url=URL.createObjectURL(new Blob([content],{type:fileMime(name,file)}));urls.push(url);return url;
+ })();blobCache.set(name,job);return job;
+}
+async function rewriteRef(value,base) {const r=localRef(value,base);return r?(await blobFor(r.path))+r.suffix:value;}
+async function rewriteSrcset(value,base) {
+ if(/data:/i.test(value)){warn('data URLを含むsrcsetはそのまま表示します。');return value;}
+ return (await Promise.all(value.split(',').map(async part=>{const m=part.trim().match(/^(\S+)(.*)$/);return m?(await rewriteRef(m[1],base))+m[2]:part;}))).join(', ');
+}
+function markLines(doc,source) {
+ const queues=new Map();const re=/<!--[\s\S]*?-->|<(script|style|textarea|title)\b[^>]*>[\s\S]*?<\/\1\s*>|<([a-z][\w:-]*)\b[^>]*>/gi;
+ let match;
+ while((match=re.exec(source))){if(match[0].startsWith('<!--'))continue;const tag=(match[1]||match[2]).toLowerCase();const line=source.slice(0,match.index).split('\n').length;if(!queues.has(tag))queues.set(tag,[]);queues.get(tag).push(line);}
+ for(const node of doc.querySelectorAll('*')){const q=queues.get(node.localName);if(q?.length)node.setAttribute('data-uir-l',String(q.shift()));}
+}
+function previewShim() {
+ const bridge=parent.__UIR;
+ const base=bridge.htmlPath;
+ const originalFetch=window.fetch.bind(window);
+ window.fetch=async function(input,init){
+  if(typeof input==='string' || input instanceof URL){const value=String(input);const url=await bridge.resource(value,base);return originalFetch(url,init);}
+  return originalFetch(input,init);
+ };
+ const attributes={IMG:['src','srcset'],VIDEO:['src','poster'],AUDIO:['src'],SOURCE:['src','srcset'],LINK:['href'],USE:['href','xlink:href'],IMAGE:['href','xlink:href'],INPUT:['src']};
+ const busy=new WeakSet();
+ async function rewriteNode(node){
+  if(node.nodeType!==1||busy.has(node))return;
+  const attrs=attributes[node.tagName];if(attrs){
+   busy.add(node);
+   try{for(const name of attrs){const old=node.getAttribute(name);if(!old)continue;const value=name==='srcset'?await bridge.srcset(old,base):await bridge.resource(old,base);if(value!==old&&node.getAttribute(name)===old)node.setAttribute(name,value);}}finally{busy.delete(node);}
+  }
+  if(node.tagName==='SCRIPT' && node.getAttribute('src') && !/^(?:blob:|data:|https?:)/.test(node.getAttribute('src')))bridge.warn('動的な相対scriptは未対応です: '+node.getAttribute('src'));
+ }
+ const observer=new MutationObserver(records=>{for(const r of records){if(r.type==='attributes')rewriteNode(r.target);for(const n of r.addedNodes){rewriteNode(n);if(n.querySelectorAll)for(const child of n.querySelectorAll('*'))rewriteNode(child);}}});
+ observer.observe(document,{subtree:true,childList:true,attributes:true,attributeFilter:['src','srcset','poster','href','xlink:href']});
+ document.addEventListener('keydown',event=>bridge.key(event),true);
+ document.addEventListener('click',event=>{
+  const a=event.target.closest?.('a[href]');
+  if(a && !a.getAttribute('href').startsWith('#')){event.preventDefault();bridge.toast('別ページへの移動は停止しました。フォルダを開き、対象のHTMLを選んでください。');}
+ },true);
+ document.addEventListener('submit',event=>{event.preventDefault();bridge.toast('プレビュー内のフォーム送信は停止しました。');},true);
+ document.addEventListener('dragover',event=>event.preventDefault(),true);
+ document.addEventListener('drop',event=>{event.preventDefault();bridge.drop(event);},true);
+}
+async function buildHtml(source) {
+ const doc=new DOMParser().parseFromString(source,'text/html');markLines(doc,source);
+ for(const node of doc.querySelectorAll('meta[http-equiv]'))if(node.getAttribute('http-equiv').toLowerCase()==='content-security-policy')node.remove();
+ for(const node of doc.querySelectorAll('base')){node.remove();warn('base要素はプレビューで除外しました。相対参照は対象HTMLを基準にします。');}
+ for(const node of doc.querySelectorAll('script[type="module"]'))warn('ESモジュールの相対importは未対応です。');
+ for(const node of doc.querySelectorAll('*')){
+  if(node.hasAttribute('style'))node.setAttribute('style',await rewriteCss(node.getAttribute('style'),state.htmlPath));
+  if(node.tagName==='STYLE')node.textContent=await rewriteCss(node.textContent,state.htmlPath);
+  for(const name of ['src','poster'])if(node.hasAttribute(name))node.setAttribute(name,await rewriteRef(node.getAttribute(name),state.htmlPath));
+  if(node.hasAttribute('srcset'))node.setAttribute('srcset',await rewriteSrcset(node.getAttribute('srcset'),state.htmlPath));
+  if(node.tagName==='LINK' && node.hasAttribute('href'))node.setAttribute('href',await rewriteRef(node.getAttribute('href'),state.htmlPath));
+  if(['use','image'].includes(node.localName))for(const attr of ['href','xlink:href'])if(node.hasAttribute(attr))node.setAttribute(attr,await rewriteRef(node.getAttribute(attr),state.htmlPath));
+ }
+ const shim=doc.createElement('script');shim.setAttribute('data-uir-shim','');shim.textContent='('+previewShim.toString()+')();';doc.head.prepend(shim);
+ return '<!doctype html>\n'+doc.documentElement.outerHTML;
+}
+async function collectDir(handle,prefix='',map=new Map()){
+ for await(const [name,entry] of handle.entries()){if(SKIP.has(name))continue;const p=prefix+name;if(entry.kind==='directory')await collectDir(entry,p+'/',map);else map.set(p,entry);}return map;
+}
+function sourceFiles(files){const map=new Map();const root=files[0]?.webkitRelativePath?.split('/')[0];for(const file of files){let p=file.webkitRelativePath||file.name;if(root&&p.startsWith(root+'/'))p=p.slice(root.length+1);if(p.split('/').some(x=>SKIP.has(x)))continue;const clean=normalizePath(p);if(clean)map.set(clean,file);}return {kind:root?'files':'file',name:root||files[0]?.name||'フォルダ',files:map,handle:null};}
+async function sourceMap(source){return source.kind==='dir'?collectDir(source.handle):(source.handle?new Map([[source.name,source.handle]]):new Map(source.files||[]));}
+async function sameRoot(a,b) {
+ if(!a||!b)return false;
+ if(a.handle&&b.handle){try{return await a.handle.isSameEntry(b.handle);}catch(_){return false;}}
+ return (a.kind==='file')===(b.kind==='file') && a.name===b.name;
+}
+function chooseHtml(paths) {
+ if(paths.length===1)return Promise.resolve(paths[0]);
+ return new Promise(resolve=>{
+ const dialog=$('htmlDialog'),choice=$('htmlChoice');choice.replaceChildren(...paths.map(p=>{const n=el('option','',p);n.value=p;return n;}));choice.value=paths.includes(state.htmlPath)?state.htmlPath:(paths.includes('index.html')?'index.html':paths[0]);
+ dialog.addEventListener('close',()=>resolve(dialog.returnValue==='open'?choice.value:null),{once:true});dialog.showModal();
+ });
+}
+async function openSource(source,requestedPath,options={}){
+ if(busy){toast('読み込み中です。少しお待ちください。');return;}
+ busy=true;setMode(false);updateUI();
+ try{
+  const files=await sourceMap(source);
+  const paths=[...files.keys()].filter(p=>/\.html?$/i.test(p)).sort((a,b)=>(a==='index.html'?-1:b==='index.html'?1:a.localeCompare(b)));
+  if(!paths.length)throw new Error('HTMLファイルが見つかりません。');
+  const selected=requestedPath&&files.has(requestedPath)?requestedPath:await chooseHtml(paths);
+  if(!selected)return;
+  const same=await sameRoot(state.source,source) && state.htmlPath===selected;
+  if(state.annotations.length&&!same&&!options.restore && !confirm('別の対象を開くと現在の指摘が削除されます。よろしいですか？'))return;
+  const entry=files.get(selected),file=entry.getFile?await entry.getFile():entry,text=await file.text();
+  const previous={source:state.source,htmlPath:state.htmlPath,vfs,urls,cache:blobCache,warnings};
+  vfs=files;urls=[];blobCache=new Map();warnings=new Set();state.source=source;state.htmlPath=selected;
+  let html;
+  try{html=await buildHtml(text);}
+  catch(error){for(const u of urls)URL.revokeObjectURL(u);state.source=previous.source;state.htmlPath=previous.htmlPath;vfs=previous.vfs;urls=previous.urls;blobCache=previous.cache;warnings=previous.warnings;updateWarnings();throw error;}
+  if(!same&&!options.restore){state.annotations=[];state.nextId=1;activeId=null;undo=null;clearTimeout(undoTimer);}
+  restoreScroll=options.scroll||{x:0,y:0};
+  for(const a of state.annotations){a.el=null;a.vis='pending';}
+  const token=++renderToken;
+  frame.onload=()=>{
+   if(token!==renderToken)return;
+   frameWindow=frame.contentWindow;loaded=true;
+   try{frameWindow.scrollTo(restoreScroll.x,restoreScroll.y);}catch(_){}
+   for(const a of state.annotations)resolveAnn(a);renderList();updateUI();updateWarnings();
+   for(const u of previous.urls)URL.revokeObjectURL(u);
+  };
+  frame.srcdoc=html;loaded=false;$('blank').hidden=true;$('resume').hidden=true;renderList();updateWarnings();persist();
+  $('sourceName').textContent=source.name+' / '+selected;$('sourceName').title=$('sourceName').textContent;
+  $('previewStatus').textContent='操作モード · Qで要素を選択';
+ }catch(error){if(error.name!=='AbortError')toast('読み込みできませんでした：'+error.message);}
+ finally{busy=false;updateUI();}
+}
+async function reload(){
+ if(!state.source)return;
+ let scroll={x:0,y:0};try{scroll={x:frame.contentWindow.scrollX,y:frame.contentWindow.scrollY};}catch(_){}
+ if(!state.source.handle){toast('選択済みファイルを再表示します。編集結果を反映するには、同じ対象を開き直してください。');}
+ await openSource(state.source,state.htmlPath,{restore:true,scroll});
+}
+async function pickDir(){
+ if(window.showDirectoryPicker&&!dirFallback){try{const handle=await showDirectoryPicker({mode:'read'});await openSource({kind:'dir',name:handle.name,handle});}catch(e){if(e.name!=='AbortError'){dirFallback=true;toast('フォルダ参照を利用できません。もう一度押すとファイル選択に切り替わります。');}}}
+ else{$('dirInput').value='';$('dirInput').click();}
+}
+async function pickFile(){
+ if(window.showOpenFilePicker&&!fileFallback){try{const [handle]=await showOpenFilePicker({types:[{description:'HTML',accept:{'text/html':['.html','.htm']}}],multiple:false});await openSource({kind:'file',name:handle.name,handle});}catch(e){if(e.name!=='AbortError'){fileFallback=true;toast('ファイル参照を利用できません。もう一度押すとファイル選択に切り替わります。');}}}
+ else{$('fileInput').value='';$('fileInput').click();}
+}
+async function entryFiles(entry,prefix='',map=new Map()){
+ if(SKIP.has(entry.name))return map;
+ if(entry.isFile){const file=await new Promise((ok,no)=>entry.file(ok,no));map.set(prefix+entry.name,file);}
+ else if(entry.isDirectory){const reader=entry.createReader();while(true){const batch=await new Promise((ok,no)=>reader.readEntries(ok,no));if(!batch.length)break;for(const child of batch)await entryFiles(child,prefix+(prefix?entry.name+'/':''),map);}}
+ return map;
+}
+async function handleDrop(event){
+ event.preventDefault();$('dropTarget').hidden=true;
+ const items=[...(event.dataTransfer?.items||[])].filter(i=>i.kind==='file');
+ // Request handles/entries while the drag data store is still readable.
+ const requests=items.map(i=>({handle:i.getAsFileSystemHandle?i.getAsFileSystemHandle().catch(()=>null):Promise.resolve(null),entry:i.webkitGetAsEntry?.(),file:i.getAsFile()}));
+ try{
+  if(!requests.length)return;
+  const first=await requests[0].handle;
+  if(first){if(first.kind==='directory')await openSource({kind:'dir',name:first.name,handle:first});else if(/\.html?$/i.test(first.name))await openSource({kind:'file',name:first.name,handle:first});else toast('HTMLファイルまたはフォルダをドロップしてください。');return;}
+  const entry=requests[0].entry;
+  if(entry?.isDirectory){
+   const map=new Map(),reader=entry.createReader();
+   while(true){const batch=await new Promise((ok,no)=>reader.readEntries(ok,no));if(!batch.length)break;for(const child of batch)await readEntry(child,'',map);}
+   await openSource({kind:'files',name:entry.name,files:map,handle:null});
+  }else{const files=requests.map(r=>r.file).filter(Boolean);if(files.length)await openSource(sourceFiles(files));}
+ }catch(error){toast('ドロップした対象を読み込めません：'+error.message);}
+}
+async function readEntry(entry,prefix,map){
+ if(SKIP.has(entry.name))return;
+ if(entry.isFile){map.set(prefix+entry.name,await new Promise((ok,no)=>entry.file(ok,no)));return;}
+ const reader=entry.createReader();while(true){const batch=await new Promise((ok,no)=>reader.readEntries(ok,no));if(!batch.length)break;for(const child of batch)await readEntry(child,prefix+entry.name+'/',map);}
+}
+
+function textOf(n){return (n.innerText||n.textContent||n.getAttribute('aria-label')||'').replace(/\s+/g,' ').trim().slice(0,240);}
+function queryAll(s){try{return [...frame.contentDocument.querySelectorAll(s)];}catch(_){return [];}}
+function uniqueSelector(node){
+ const doc=node.ownerDocument,esc=doc.defaultView.CSS.escape;
+ const unique=s=>{try{return doc.querySelectorAll(s).length===1;}catch(_){return false;}};
+ if(node.id&&unique('#'+esc(node.id)))return '#'+esc(node.id);
+ for(const attr of ['data-testid','data-test','data-cy','data-qa','data-id','name','aria-label']){
+  const value=node.getAttribute(attr);if(value){const s=node.localName+'['+attr+'="'+value.replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\n/g,'\\a ')+'"]';if(unique(s))return s;}
+ }
+ const parts=[];let n=node;
+ while(n?.nodeType===1){
+  if(n.id&&unique('#'+esc(n.id))){parts.unshift('#'+esc(n.id));break;}
+  const classes=[...n.classList].filter(c=>!/(?:^|[-_])(active|open|selected|focus|hover|disabled|hidden|show|visible)(?:$|[-_])/i.test(c)&&!/[a-f0-9]{7,}/i.test(c)).slice(0,2);
+  let p=n.localName+classes.map(c=>'.'+esc(c)).join('');
+  const siblings=n.parentElement?[...n.parentElement.children].filter(x=>x.localName===n.localName):[];
+  if(siblings.length>1)p+=':nth-of-type('+(siblings.indexOf(n)+1)+')';
+  parts.unshift(p);if(unique(parts.join(' > ')))return parts.join(' > ');n=n.parentElement;
+ }return parts.join(' > ');
+}
+function breadcrumb(n){const p=[];for(let i=0;n&&i<5;i++,n=n.parentElement)p.unshift(n.localName+(n.id?'#'+n.id:'')+[...n.classList].slice(0,2).map(c=>'.'+c).join(''));return p.join(' > ');}
+function describe(n){
+ const clone=n.cloneNode(true);clone.removeAttribute('data-uir-l');for(const x of clone.querySelectorAll('[data-uir-l]'))x.removeAttribute('data-uir-l');
+ return {selector:uniqueSelector(n),tag:n.localName,label:n.localName+(n.id?'#'+n.id:'')+[...n.classList].slice(0,2).map(c=>'.'+c).join(''),text:textOf(n),html:clone.outerHTML.slice(0,1200),line:Number(n.getAttribute('data-uir-l'))||null,crumb:breadcrumb(n)};
+}
+function visible(n){if(!n?.isConnected||n.closest('dialog:not([open])'))return false;const s=n.ownerDocument.defaultView.getComputedStyle(n);return s.display!=='none'&&s.visibility!=='hidden'&&n.getClientRects().length>0;}
+function resolveAnn(a){
+ if(!loaded||!frame.contentDocument){a.vis='pending';return;}
+ let n=queryAll(a.snap.selector).find(x=>x.localName===a.snap.tag)||null;
+ if(!n||(a.snap.text&&textOf(n)!==a.snap.text)){const candidates=[...frame.contentDocument.getElementsByTagName(a.snap.tag)].filter(x=>textOf(x)===a.snap.text);if(candidates.length===1)n=candidates[0];}
+ a.el=n;a.vis=n?(visible(n)?'ok':'hidden'):'missing';
+}
+function updateUI(){
+ $('reload').disabled=!state.source||busy;$('selectMode').disabled=!loaded||busy;$('reset').disabled=!state.annotations.length;
+ $('copy').disabled=!state.annotations.some(a=>a.comment.trim());$('openDir').disabled=busy;$('openFile').disabled=busy;$('annCount').textContent=String(state.annotations.length);
+}
+function setMode(on){
+ mode=!!on&&loaded&&!busy;glass.hidden=!mode;$('selectMode').setAttribute('aria-pressed',String(mode));$('modeText').textContent=mode?'選択中':'要素を選択';
+ if(!mode){hovered=null;$('hoverBox').hidden=true;$('hoverLabel').hidden=true;}
+ if(loaded)$('previewStatus').textContent=mode?'選択モード · 要素をクリックして指摘':'操作モード · Qで要素を選択';
+}
+function onKey(e){
+ if(e.isComposing||e.keyCode===229||e.ctrlKey||e.metaKey||e.altKey||e.shiftKey||modalOpen()||editable(e.target))return;
+ if(e.key.toLowerCase()==='q'){e.preventDefault();e.stopImmediatePropagation();setMode(!mode);}
+ else if(e.key==='Escape'&&mode){e.preventDefault();setMode(false);}
+}
+function activate(id,focus=false,jump=false){
+ activeId=id;const a=state.annotations.find(x=>x.id===id);if(!a)return;
+ for(const row of $('list').querySelectorAll('.annotation'))row.classList.toggle('active',Number(row.dataset.id)===id);
+ const row=$('list').querySelector('[data-id="'+id+'"]');row?.scrollIntoView({block:'nearest'});if(focus)row?.querySelector('textarea')?.focus();
+ if(jump){resolveAnn(a);if(a.vis==='ok'){a.el.scrollIntoView({block:'center',inline:'nearest'});const m=markers.get(id);if(m){m.classList.remove('flash');void m.offsetWidth;m.classList.add('flash');}}else toast(a.vis==='hidden'?'この要素は現在非表示です。':'この要素は現在のページに見つかりません。');}
+}
+function createAnn(n){
+ const existing=state.annotations.find(a=>a.el===n);if(existing){activate(existing.id,true);return;}
+ const a={id:state.nextId++,comment:'',snap:describe(n),el:n,vis:'ok'};state.annotations.push(a);renderList();activate(a.id,true);updateUI();
+}
+function discardEmpty(id){
+ const i=state.annotations.findIndex(a=>a.id===id);if(i<0||state.annotations[i].comment.trim())return;
+ const a=state.annotations[i];state.annotations.splice(i,1);if(a.id===state.nextId-1)state.nextId--;if(activeId===id)activeId=null;renderList();persist();
+}
+function removeAnn(id){
+ const i=state.annotations.findIndex(a=>a.id===id);if(i<0)return;
+ const [a]=state.annotations.splice(i,1);undo={ann:a,index:i,source:state.source,htmlPath:state.htmlPath};clearTimeout(undoTimer);undoTimer=setTimeout(()=>undo=null,6000);
+ if(activeId===id)activeId=null;renderList();persist();
+ toast('#'+id+'を削除しました。',{label:'元に戻す',run:()=>{if(!undo||undo.source!==state.source||undo.htmlPath!==state.htmlPath)return;state.annotations.splice(Math.min(undo.index,state.annotations.length),0,undo.ann);undo=null;clearTimeout(undoTimer);renderList();persist();}});
+}
+function statusText(a){return a.vis==='hidden'?'非表示':a.vis==='missing'?'要素なし':a.vis==='pending'?'対象の読込待ち':'';}
+function renderList(){
+ const list=$('list');list.replaceChildren();
+ if(!state.annotations.length){const empty=el('div','list-empty');empty.append(el('strong','','まだ、指摘はありません。'),document.createTextNode('Qで選択モードにして、気になる要素をクリックしてください。'));list.append(empty);}
+ for(const a of state.annotations){
+  const row=el('article','annotation'+(a.id===activeId?' active':''));row.dataset.id=String(a.id);
+  const top=el('div','ann-top'),num=el('span','ann-num','#'+a.id),label=el('span','ann-label',a.snap.label+(a.snap.text?'「'+a.snap.text.slice(0,24)+'」':''));
+  label.title=a.snap.crumb;const del=el('button','delete','×');del.type='button';del.setAttribute('aria-label','#'+a.id+'の指摘を削除');del.onclick=e=>{e.stopPropagation();removeAnn(a.id);};
+  top.append(num,label,del);top.onclick=()=>activate(a.id,false,true);
+  const status=el('div','ann-state',statusText(a));status.hidden=!status.textContent;
+  const input=el('textarea','ann-input');input.value=a.comment;input.placeholder='ここに指摘を書く…';input.setAttribute('aria-label','#'+a.id+'の指摘');
+  input.onfocus=()=>activate(a.id);input.oninput=()=>{a.comment=input.value;persist();updateUI();};
+  input.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing&&e.keyCode!==229){e.preventDefault();input.blur();if(a.comment.trim()){persist();toast('#'+a.id+'を確定しました。続けて要素を選べます。');}}};
+  input.onblur=()=>{if(!a.comment.trim())setTimeout(()=>discardEmpty(a.id),0);else saveNow();};
+  row.append(top,status,input,el('p','ann-hint','Enterで確定 / Shift+Enterで改行'));list.append(row);
+ }updateUI();
+}
+function hoverAt(e){if(!mode||!loaded)return null;const r=frame.getBoundingClientRect();return frame.contentDocument.elementFromPoint(e.clientX-r.left,e.clientY-r.top);}
+glass.addEventListener('pointermove',e=>hovered=hoverAt(e));glass.addEventListener('pointerleave',()=>hovered=null);
+glass.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();const n=hoverAt(e);if(n&&n.localName!=='html')createAnn(n);});
+glass.addEventListener('wheel',e=>{
+ e.preventDefault();let n=hoverAt(e);const d=e.deltaMode===1?16:e.deltaMode===2?frame.clientHeight:1,dy=e.deltaY*d,dx=e.deltaX*d;
+ while(n&&n!==frame.contentDocument.documentElement){const s=frame.contentWindow.getComputedStyle(n);if(/auto|scroll/.test(s.overflowY)&&n.scrollHeight>n.clientHeight){const before=n.scrollTop;n.scrollTop+=dy;n.scrollLeft+=dx;if(n.scrollTop!==before)return;}n=n.parentElement;}frame.contentWindow.scrollBy(dx,dy);
+},{passive:false});
+function place(n){const r=n.getBoundingClientRect(),f=frame.getBoundingClientRect(),w=wrap.getBoundingClientRect();return {left:r.left+f.left-w.left-wrap.clientLeft,top:r.top+f.top-w.top-wrap.clientTop,width:r.width,height:r.height};}
+function position(n,r){n.style.left=r.left+'px';n.style.top=r.top+'px';n.style.width=Math.max(0,r.width)+'px';n.style.height=Math.max(0,r.height)+'px';}
+function draw(){
+ try{
+  loopCount++;const ids=new Set(state.annotations.map(a=>a.id));for(const [id,m] of markers)if(!ids.has(id)){m.remove();markers.delete(id);}
+  for(const a of state.annotations){
+   if(loopCount%15===0||!a.el?.isConnected)resolveAnn(a);
+   let m=markers.get(a.id);if(!m){m=el('div','marker');const b=el('button','badge',String(a.id));b.type='button';b.setAttribute('aria-label','#'+a.id+'の指摘を開く');b.onclick=e=>{e.stopPropagation();activate(a.id,true);};m.append(b);overlay.append(m);markers.set(a.id,m);}
+   const ok=loaded&&a.el&&visible(a.el);m.hidden=!ok;if(ok){position(m,place(a.el));m.classList.toggle('active',a.id===activeId);}
+   if(loopCount%15===0){const label=$('list').querySelector('[data-id="'+a.id+'"] .ann-state');if(label){label.textContent=statusText(a);label.hidden=!label.textContent;}}
+  }
+  if(mode&&hovered?.isConnected&&visible(hovered)){const r=place(hovered);position($('hoverBox'),r);$('hoverBox').hidden=false;const l=$('hoverLabel');l.textContent=hovered.localName+(hovered.id?'#'+hovered.id:'')+' · '+Math.round(r.width)+' × '+Math.round(r.height);l.style.left=Math.max(0,Math.min(r.left,wrap.clientWidth-220))+'px';l.style.top=Math.max(0,r.top-26)+'px';l.hidden=false;}
+  else{$('hoverBox').hidden=true;$('hoverLabel').hidden=true;}
+ }catch(_){}requestAnimationFrame(draw);
+}
+function buildExport(){
+ const anns=state.annotations.filter(a=>a.comment.trim()),tick=String.fromCharCode(96),inline=t=>tick+String(t).replaceAll(tick,'ˋ').replace(/[\r\n]/g,' ')+tick;
+ const lines=['# UI修正指示','','- 対象: '+state.htmlPath+'（フォルダ: '+(state.source?.name||'未読込')+'）','- 指摘: '+anns.length+'件（'+anns.map(a=>'#'+a.id).join(', ')+'）。欠番は削除済みの指摘','- 確認時の表示領域: '+frame.clientWidth+'×'+frame.clientHeight+'px','','## 対応ルール',
+ '1. 指摘は番号ごとに独立している。1件ずつ対応する。',
+ '2. 対象要素は「セレクタ」で特定する。セレクタはJS実行後のDOMから取得している。一致しない場合は「ソース位置」「HTML抜粋」「祖先」で照合する。',
+ '3. 要素を特定できない指摘は推測で修正しない。番号と理由を報告する。',
+ '4. 指摘と無関係な箇所は変更しない。',
+ '5. 完了後、番号ごとに「対応内容」と「変更したファイル」を1行で報告する。'];
+ for(const a of anns){
+  resolveAnn(a);const s=a.el?describe(a.el):a.snap,runs=s.html.match(/\x60+/g)||[],fence=tick.repeat(Math.max(3,...runs.map(r=>r.length+1)));
+  lines.push('','---','','## #'+a.id+' '+inline(s.label)+(s.text?'「'+s.text.slice(0,60)+'」':''),'',...a.comment.split('\n').map(l=>'> '+l),'','- セレクタ: '+inline(s.selector),'- ソース位置: '+(s.line?state.htmlPath+' '+s.line+'行目付近（推定）':'HTMLソースに記述なし（JSで生成された要素の可能性）'),'- 祖先: '+inline(s.crumb));
+  if(a.vis==='hidden')lines.push('- 状態: 出力時は非表示');if(a.vis==='missing'||a.vis==='pending')lines.push('- 状態: 出力時に要素が見つからない');
+  lines.push('- HTML抜粋:',fence+'html',s.html,fence);
+ }return lines.join('\n')+'\n';
+}
+async function copyText(){
+ if(!state.annotations.some(a=>a.comment.trim()))return;const text=buildExport();
+ try{if(!navigator.clipboard?.writeText)throw new Error('Clipboard unavailable');await navigator.clipboard.writeText(text);toast('AI向けの修正指示をコピーしました。');}
+ catch(_){$('exportText').value=text;$('exportDialog').showModal();$('exportText').select();}
+}
+function clearAnnotations(){
+ if(!state.annotations.length||!confirm('すべての指摘を削除して番号をリセットします。よろしいですか？'))return;
+ state.annotations=[];state.nextId=1;activeId=null;undo=null;clearTimeout(undoTimer);renderList();persist();toast('指摘をリセットしました。読み込んだページはそのままです。');
+}
+window.__UIR={get htmlPath(){return state.htmlPath;},resource:rewriteRef,srcset:rewriteSrcset,warn,toast,key:onKey,drop:handleDrop};
+window.__uir={state,openSource,buildExport,saveNow,uniqueSelector,reload};
+$('openDir').onclick=pickDir;$('openFile').onclick=pickFile;$('reload').onclick=reload;$('selectMode').onclick=()=>setMode(!mode);$('reset').onclick=clearAnnotations;$('copy').onclick=copyText;
+$('dirInput').onchange=e=>{const f=[...e.target.files];if(f.length)openSource(sourceFiles(f));};$('fileInput').onchange=e=>{const f=[...e.target.files];if(f.length)openSource(sourceFiles(f));};
+document.addEventListener('keydown',onKey,true);
+let dragDepth=0;
+document.addEventListener('dragenter',e=>{if(e.dataTransfer?.types.includes('Files')){e.preventDefault();dragDepth++;$('dropTarget').hidden=false;}});
+document.addEventListener('dragleave',()=>{dragDepth=Math.max(0,dragDepth-1);if(!dragDepth)$('dropTarget').hidden=true;});
+document.addEventListener('dragover',e=>{if(e.dataTransfer?.types.includes('Files'))e.preventDefault();});
+document.addEventListener('drop',e=>{dragDepth=0;handleDrop(e);});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')saveNow();});window.addEventListener('pagehide',saveNow);
+async function init(){
+ try{
+  db=await openDb();const saved=await new Promise((ok,no)=>{const r=db.transaction('kv').objectStore('kv').get('state');r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error);});
+  if(saved){
+   if(saved.v!==1||!Array.isArray(saved.annotations)||!Number.isSafeInteger(saved.nextId)||saved.nextId<1)throw new Error('保存形式を読み込めません。');
+   const ids=new Set(),anns=saved.annotations.map(a=>{
+    if(!a||!Number.isSafeInteger(a.id)||a.id<1||ids.has(a.id)||typeof a.comment!=='string'||!a.snap||!['selector','tag','label','text','html','crumb'].every(k=>typeof a.snap[k]==='string'))throw new Error('保存された指摘が不正です。');
+    ids.add(a.id);return {...a,el:null,vis:'pending'};
+   });
+   state.annotations=anns.filter(a=>a.comment.trim());state.nextId=Math.max(saved.nextId,...anns.map(a=>a.id+1));state.htmlPath=typeof saved.htmlPath==='string'?saved.htmlPath:'';state.source=saved.source&&typeof saved.source.name==='string'?saved.source:null;renderList();
+   if(state.source){
+    const s=state.source;$('resumeText').textContent='前回の対象：'+s.name+' / '+state.htmlPath;$('resume').hidden=false;
+    if(s.handle){let p;try{p=await s.handle.queryPermission({mode:'read'});}catch(_){}
+     if(p==='granted')await openSource(s,state.htmlPath,{restore:true});
+     else $('resumeOpen').onclick=async()=>{try{if(await s.handle.requestPermission({mode:'read'})==='granted')await openSource(s,state.htmlPath,{restore:true});else toast('許可されませんでした。指摘は保持しています。');}catch(_){toast('同じ対象を「フォルダを開く」または「HTMLを開く」から選び直してください。');}};
+    }else{$('resumeOpen').textContent='同じ対象を選び直す';$('resumeOpen').onclick=()=>s.kind==='file'?pickFile():pickDir();}
+   }
+  }
+ }catch(e){$('saveStatus').textContent='保存データを利用できません · 修正指示をコピーして保管してください';toast(e.message);}
+ updateUI();requestAnimationFrame(draw);
+}init();
+})();
+
+</script></body></html>

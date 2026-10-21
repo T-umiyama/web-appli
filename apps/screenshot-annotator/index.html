@@ -1,0 +1,1664 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>スクショ注釈ツール | WEB APPS</title>
+  <style>
+    :root {
+      --bg: #f5f2e9;
+      --panel: #fffdf8;
+      --ink: #161616;
+      --muted: #504c47;
+      --line: #161616;
+      --primary: #b7a8f5;
+      --danger: #f7acd6;
+      --ok: #f8ed48;
+      --yellow: #f8ed48;
+      --pink: #f7acd6;
+      --purple: #b7a8f5;
+      --shadow: 7px 7px 0 #161616;
+      font-synthesis: none;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; width: 100%; height: 100%; overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+      color: var(--ink); background: var(--bg);
+    }
+    button, input, select, textarea { font: inherit; }
+    button, a, input, select { touch-action: manipulation; }
+    a { color: inherit; }
+    :focus-visible { outline: 4px solid #6046d7; outline-offset: 4px; }
+    header {
+      height: 76px; display: flex; align-items: center; justify-content: space-between;
+      gap: 24px; padding: 0 23px; background: var(--yellow); border-bottom: 3px solid var(--ink);
+    }
+    .brand-block { display: flex; align-items: center; gap: 18px; min-width: 0; }
+    .home-link {
+      display: inline-flex; align-items: center; gap: 7px; flex-shrink: 0;
+      padding: 8px 11px; border: 2px solid var(--ink); background: var(--panel);
+      box-shadow: 3px 3px 0 var(--ink); text-decoration: none; font-size: 11px; font-weight: 850;
+    }
+    header .title { margin: 0; font-size: 22px; font-weight: 900; letter-spacing: -.045em; white-space: nowrap; }
+    .eyebrow { display: block; margin-bottom: 4px; font: 800 9px/1.3 monospace; letter-spacing: .09em; }
+    header .hint { max-width: 380px; font-size: 11px; font-weight: 650; line-height: 1.7; }
+    .app { height: calc(100vh - 76px); height: calc(100dvh - 76px); display: grid; grid-template-columns: 286px minmax(0, 1fr); }
+    aside { padding: 18px 17px 22px; border-right: 3px solid var(--ink); overflow: auto; background: var(--bg); }
+    main { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+    .group { border: 2px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); background: var(--panel); padding: 12px; margin-bottom: 17px; }
+    .group-title { font-size: 11px; font-weight: 900; padding: 7px 9px; margin: -12px -12px 12px; border-bottom: 2px solid var(--ink); background: var(--purple); letter-spacing: .04em; }
+    .group:nth-child(2) .group-title { background: var(--pink); }
+    .group:nth-child(3) .group-title { background: var(--yellow); }
+    .tool-grid, .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .tool-grid .tool:last-child { grid-column: 1 / -1; }
+    button {
+      border: 2px solid var(--ink); border-radius: 0; padding: 9px 9px;
+      background: var(--panel); color: var(--ink); box-shadow: 2px 2px 0 var(--ink);
+      font-size: 12px; font-weight: 800; line-height: 1.3; cursor: pointer; user-select: none;
+      transition: transform .1s, box-shadow .1s;
+    }
+    button:hover:not(:disabled), .home-link:hover { background: var(--yellow); transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--ink); }
+    button:active:not(:disabled) { transform: translate(2px, 2px); box-shadow: none; }
+    button.active { background: var(--purple); box-shadow: inset 0 -3px 0 var(--ink); }
+    button.primary { background: var(--purple); }
+    button.danger { background: var(--pink); }
+    button.ok { background: var(--yellow); }
+    button:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
+    label { display: block; margin: 10px 0 5px; font-size: 11px; font-weight: 800; }
+    input, select { width: 100%; padding: 8px; border: 2px solid var(--ink); border-radius: 0; background: white; color: var(--ink); font-size: 12px; }
+    input[type="color"] { padding: 2px; height: 38px; }
+    .setting-row { display: none; }
+    .setting-row.visible { display: block; }
+    .select-note { display: none; margin-top: 8px; padding: 9px; border: 2px solid var(--ink); background: #f0ebff; font-size: 11px; line-height: 1.8; }
+    .select-note.visible { display: block; }
+    .mini { margin-top: 11px; font-size: 11px; line-height: 1.8; color: var(--muted); }
+    .kbd { display: inline-block; padding: 0 4px; border: 1px solid var(--ink); border-bottom-width: 2px; background: var(--bg); color: var(--ink); font: 800 10px/1.6 monospace; }
+    .file-input { display: none; }
+    .topbar { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; padding: 13px 20px 12px; background: var(--panel); border-bottom: 3px solid var(--ink); }
+    .status { flex-basis: 100%; min-height: 20px; padding-top: 5px; font-size: 11px; font-weight: 650; line-height: 1.6; color: var(--ink) !important; }
+    .zoom-controls { display: flex; align-items: center; gap: 5px; margin-left: auto; padding: 5px; border: 2px solid var(--ink); background: var(--bg); }
+    .zoom-controls button { min-width: 30px; height: 28px; padding: 3px 6px; box-shadow: none; font-size: 11px; }
+    .zoom-label { min-width: 43px; text-align: center; font: 800 11px monospace; }
+    .stage { position: relative; flex: 1; min-height: 0; overflow: auto; padding: 28px; background-color: var(--bg); background-image: radial-gradient(#c6bfb0 1px, transparent 1px); background-size: 18px 18px; }
+    .stage:focus-visible { outline-offset: -6px; }
+    .canvas-wrap { position: relative; display: inline-block; min-width: 320px; min-height: 220px; background: #fff; outline: 3px solid var(--ink); box-shadow: var(--shadow); overflow: hidden; transform-origin: top left; }
+    canvas { display: block; background: #fff; cursor: crosshair; touch-action: none; max-width: none; max-height: none; }
+    .empty { position: absolute; inset: 0; display: grid; place-items: center; padding: 30px; pointer-events: none; text-align: center; background: var(--panel); color: var(--muted); }
+    .empty-mark { display: inline-grid; place-items: center; width: 66px; height: 62px; margin-bottom: 25px; border: 3px solid var(--ink); background: var(--pink); color: var(--ink); box-shadow: 5px 5px 0 var(--ink); transform: rotate(-6deg); font: 900 38px/1 monospace; }
+    .empty strong { display: block; color: var(--ink); font-size: 27px; font-weight: 900; margin-bottom: 17px; letter-spacing: -.04em; }
+    .empty p { margin: 9px 0; font-size: 12px; line-height: 1.9; }
+    .inline-text-editor { position: absolute; display: none; min-width: 180px; min-height: 44px; padding: 6px 8px; border: 3px solid var(--ink); border-radius: 0; outline: none; background: #fffdf8; box-shadow: 4px 4px 0 var(--ink); resize: both; overflow: auto; z-index: 20; line-height: 1.25; font-weight: 700; color: var(--ink); pointer-events: auto; }
+    .inline-text-editor:focus-visible { outline: 3px solid var(--purple); outline-offset: 2px; }
+    .inline-text-guide { position: absolute; display: none; padding: 4px 7px; background: var(--ink); color: white; font-size: 10px; font-weight: 700; z-index: 7; white-space: nowrap; pointer-events: none; }
+    @media (max-width: 1060px) { header .hint { max-width: 250px; font-size: 10px; } .topbar { padding: 11px 16px; } .zoom-controls { margin-left: 0; } }
+    @media (max-width: 860px) {
+      html, body { height: auto; overflow: auto; } header { height: auto; min-height: 90px; padding: 15px 18px; gap: 13px; flex-wrap: wrap; } header .title { font-size: 20px; } header .hint { max-width: none; font-size: 10px; }
+      .app { height: auto; display: block; } aside { border-right: 0; border-bottom: 3px solid var(--ink); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; padding: 18px; align-items: start; }
+      .group { margin-bottom: 0; } main { height: 75vh; min-height: 440px; } .stage { padding: 20px; } .topbar button { font-size: 11px; } .empty strong { font-size: 23px; }
+    }
+    @media (max-width: 480px) { aside { display: block; } .group { margin-bottom: 16px; } .brand-block { gap: 12px; } .home-link { padding: 8px; font-size: 10px; } header .title { font-size: 18px; } .empty { padding: 20px; } .empty p { font-size: 11px; } }
+    @media (prefers-reduced-motion: reduce) { button { transition: none; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand-block"><a class="home-link" href="../../index.html">← ホーム</a><div><span class="eyebrow">SCREENSHOT ANNOTATOR</span><h1 class="title">スクショ注釈ツール</h1></div></div>
+    <div class="hint">貼り付ける。書き込む。共有する。<br>スクショに、伝わるひと手間を。</div>
+  </header>
+
+  <div class="app">
+    <aside>
+      <div class="group">
+        <div class="group-title">1. ツール</div>
+        <div class="tool-grid">
+          <button type="button" class="tool active" data-tool="select">選択</button>
+          <button type="button" class="tool" data-tool="rect">四角枠</button>
+          <button type="button" class="tool" data-tool="ellipse">円・楕円</button>
+          <button type="button" class="tool" data-tool="arrow">矢印</button>
+          <button type="button" class="tool" data-tool="line">直線</button>
+          <button type="button" class="tool" data-tool="freehand">ペン</button>
+          <button type="button" class="tool" data-tool="text">文字</button>
+          <button type="button" class="tool" data-tool="badge">番号</button>
+          <button type="button" class="tool" data-tool="blur">ぼかし</button>
+        </div>
+
+        <div class="mini" id="toolHelp">四角枠はドラッグで範囲指定します。</div>
+      </div>
+
+      <div class="group">
+        <div class="group-title">2. 見た目</div>
+
+        <div class="setting-row" data-show-for="rect ellipse arrow line freehand text badge">
+          <label id="colorLabel" for="strokeColor">色</label>
+          <input type="color" id="strokeColor" value="#ff0000">
+        </div>
+
+        <div class="two">
+          <div class="setting-row" data-show-for="rect ellipse arrow line">
+            <label for="lineStyle">線種</label>
+            <select id="lineStyle">
+              <option value="solid">実線</option>
+              <option value="dashed">破線</option>
+              <option value="dotted">点線</option>
+            </select>
+          </div>
+
+          <div class="setting-row" data-show-for="rect ellipse arrow line freehand">
+            <label for="lineWidth">線の太さ</label>
+            <input type="number" id="lineWidth" min="1" max="40" value="4">
+          </div>
+        </div>
+
+        <div class="setting-row" data-show-for="rect ellipse text">
+          <label for="fillMode">塗り・背景</label>
+          <select id="fillMode">
+            <option value="none">なし</option>
+            <option value="light">薄く塗る</option>
+            <option value="solid">塗りつぶし</option>
+          </select>
+        </div>
+
+        <div class="two">
+          <div class="setting-row" data-show-for="arrow">
+            <label for="arrowSize">矢印の大きさ</label>
+            <input type="number" id="arrowSize" min="8" max="120" value="28">
+          </div>
+
+          <div class="setting-row" data-show-for="text badge">
+            <label for="fontSize">サイズ</label>
+            <input type="number" id="fontSize" min="8" max="120" value="30">
+          </div>
+        </div>
+
+        <div class="two">
+          <div class="setting-row" data-show-for="text">
+            <label for="fontWeight">文字の太さ</label>
+            <select id="fontWeight">
+              <option value="400">標準</option>
+              <option value="700" selected>太字</option>
+              <option value="900">極太</option>
+            </select>
+          </div>
+
+          <div class="setting-row" data-show-for="badge">
+            <label for="badgeShape">番号の形</label>
+            <select id="badgeShape">
+              <option value="circle">丸</option>
+              <option value="square">四角</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="setting-row" data-show-for="blur">
+          <label for="blurStrength">ぼかしの粗さ</label>
+          <input type="number" id="blurStrength" min="4" max="40" value="12">
+        </div>
+
+        <div class="select-note" id="selectNote">注釈をクリックすると選択できます。選択後はドラッグで移動、図形のハンドルで編集、Deleteで削除できます。</div>
+        <div class="mini" id="appearanceHelp">選択中のツールに必要な設定だけ表示します。</div>
+      </div>
+
+      <div class="group">
+        <div class="group-title">3. 操作</div>
+        <div class="tool-grid">
+          <button type="button" id="undoBtn">戻す</button>
+          <button type="button" id="redoBtn">やり直し</button>
+          <button type="button" id="clearBtn" class="danger">注釈クリア</button>
+          <button type="button" id="resetBtn">画像リセット</button>
+        </div>
+
+        <div class="mini">
+          <span class="kbd">Ctrl</span> + <span class="kbd">V</span>：貼り付け<br>
+          <span class="kbd">Ctrl</span> + <span class="kbd">C</span>：編集済み画像をコピー<br>
+          <span class="kbd">Ctrl</span> + <span class="kbd">Z</span>：戻す<br>
+          <span class="kbd">Ctrl</span> + <span class="kbd">Y</span>：やり直し<br>
+          文字は <span class="kbd">Enter</span> 確定、<span class="kbd">Shift</span> + <span class="kbd">Enter</span> 改行
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="group-title">4. 入出力</div>
+        <button type="button" id="openBtn" style="width:100%;">画像ファイルを開く</button>
+        <input class="file-input" type="file" id="fileInput" accept="image/*">
+
+        <div style="height:8px;"></div>
+
+        <button type="button" id="copyBtn" class="primary" style="width:100%;">編集済み画像をコピー</button>
+
+        <div style="height:8px;"></div>
+
+        <button type="button" id="saveBtn" class="ok" style="width:100%;">PNG保存</button>
+
+        <div class="mini">画像はこの画面内で処理します。自動保存はありません。再読込・終了前にコピーかPNG保存をしてください。コピーが許可されない場合はPNGをダウンロードします。</div>
+      </div>
+    </aside>
+
+    <main>
+      <div class="topbar">
+        <button type="button" id="pasteReadBtn">クリップボード画像を読み込み</button>
+        <button type="button" id="fitBtn">ウィンドウ幅に合わせる</button>
+        <button type="button" id="copyBtn2" class="primary">コピー</button>
+        <button type="button" id="saveBtn2" class="ok">PNG保存</button>
+        <div class="zoom-controls" id="zoomControls" style="display:none;">
+          <button type="button" id="zoomOutBtn" title="縮小">−</button>
+          <button type="button" id="fitWidthBtn" title="ウィンドウ幅に合わせる">幅</button>
+          <button type="button" id="zoomResetBtn" title="100%表示">100%</button>
+          <button type="button" id="zoomInBtn" title="拡大">＋</button>
+          <span class="zoom-label" id="zoomLabel">100%</span>
+        </div>
+        <div class="status" id="status" role="status" aria-live="polite">スクショをコピーして、この画面で Ctrl+V / Command+V を押してください。</div>
+      </div>
+
+      <div class="stage" id="stage" tabindex="0">
+        <div class="canvas-wrap" id="canvasWrap">
+          <canvas id="canvas" width="800" height="500"></canvas>
+          <textarea id="inlineTextEditor" class="inline-text-editor" spellcheck="false" placeholder="ここに入力" aria-label="画像に追加する文字"></textarea>
+          <div id="inlineTextGuide" class="inline-text-guide">Enterで確定 / Shift+Enterで改行 / Escでキャンセル</div>
+
+
+          <div class="empty" id="empty">
+            <div>
+              <span class="empty-mark" aria-hidden="true">↗</span><strong>スクショ画像を貼り付け</strong>
+              <p>Windowsなら <span class="kbd">Win</span> + <span class="kbd">Shift</span> + <span class="kbd">S</span> で範囲コピー後、この画面で <span class="kbd">Ctrl</span> + <span class="kbd">V</span></p>
+              <p>画像ファイルを開くこともできます。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    const empty = document.getElementById("empty");
+    const stage = document.getElementById("stage");
+    const statusEl = document.getElementById("status");
+    const canvasWrap = document.getElementById("canvasWrap");
+    const zoomControls = document.getElementById("zoomControls");
+    const zoomLabel = document.getElementById("zoomLabel");
+    const inlineTextEditor = document.getElementById("inlineTextEditor");
+    const inlineTextGuide = document.getElementById("inlineTextGuide");
+
+    const strokeColorEl = document.getElementById("strokeColor");
+    const lineStyleEl = document.getElementById("lineStyle");
+    const lineWidthEl = document.getElementById("lineWidth");
+    const arrowSizeEl = document.getElementById("arrowSize");
+    const fontSizeEl = document.getElementById("fontSize");
+    const fontWeightEl = document.getElementById("fontWeight");
+    const fillModeEl = document.getElementById("fillMode");
+    const badgeShapeEl = document.getElementById("badgeShape");
+    const blurStrengthEl = document.getElementById("blurStrength");
+    const toolHelpEl = document.getElementById("toolHelp");
+    const appearanceHelpEl = document.getElementById("appearanceHelp");
+    const colorLabelEl = document.getElementById("colorLabel");
+    const selectNoteEl = document.getElementById("selectNote");
+
+    let tool = "rect";
+    let baseImage = null;
+    let baseImageDataUrl = null;
+    let annotations = [];
+    let redoStack = [];
+    let drawing = false;
+    let start = null;
+    let preview = null;
+    let badgeCount = 1;
+    let editingText = null;
+    let imeComposing = false;
+    let selectedIndex = null;
+    let selectMode = null;
+    let activeHandle = null;
+    let selectStart = null;
+    let selectOriginal = null;
+    let zoom = 1;
+
+    const MIN_ZOOM = 0.08;
+    const MAX_ZOOM = 4;
+
+    const toolHelp = {
+      select: "注釈を選択して、移動・再編集します。図形はハンドルでサイズ変更できます。",
+      rect: "四角枠はドラッグで範囲指定します。Shiftを押しながらで正方形になります。",
+      ellipse: "円・楕円はドラッグで範囲指定します。Shiftを押しながらで正円になります。",
+      arrow: "矢印は始点から終点へドラッグします。矢印の大きさは見た目で変更できます。",
+      line: "直線は始点から終点へドラッグします。線種と太さを変更できます。",
+      freehand: "ペンはドラッグした軌跡をそのまま描きます。",
+      text: "文字は画像上をクリックして直接入力します。日本語変換中のEnterは変換確定、変換後のEnterで注釈確定です。Shift+Enterで改行です。",
+      badge: "番号はクリック位置に自動採番します。",
+      blur: "ぼかしはドラッグ範囲をモザイク化します。"
+    };
+
+    const appearanceHelp = {
+      select: "注釈を選択すると、その注釈に対応した見た目設定へ切り替わります。",
+      rect: "四角枠では、色・線種・線の太さ・塗りを変更できます。",
+      ellipse: "円・楕円では、色・線種・線の太さ・塗りを変更できます。",
+      arrow: "矢印では、色・線種・線の太さ・矢印の大きさを変更できます。",
+      line: "直線では、色・線種・線の太さを変更できます。",
+      freehand: "ペンでは、色・線の太さを変更できます。",
+      text: "文字では、文字色・サイズ・太さ・背景を変更できます。",
+      badge: "番号では、色・サイズ・形を変更できます。",
+      blur: "ぼかしでは、ぼかしの粗さを変更できます。"
+    };
+
+    function setStatus(message, type = "normal") {
+      statusEl.textContent = message;
+      statusEl.style.color = type === "error" ? "#dc2626" : type === "ok" ? "#16a34a" : "#475569";
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function setZoom(nextZoom, silent = false) {
+      zoom = clamp(nextZoom, MIN_ZOOM, MAX_ZOOM);
+
+      canvas.style.width = Math.round(canvas.width * zoom) + "px";
+      canvas.style.height = Math.round(canvas.height * zoom) + "px";
+
+      canvasWrap.style.width = Math.round(canvas.width * zoom) + "px";
+      canvasWrap.style.height = Math.round(canvas.height * zoom) + "px";
+
+      zoomLabel.textContent = Math.round(zoom * 100) + "%";
+      repositionInlineTextEditor();
+      if (!silent) setStatus(`表示倍率: ${Math.round(zoom * 100)}%`);
+    }
+
+    function fitToWindowWidth(silent = false) {
+      if (!baseImage) return;
+
+      const stageStyle = getComputedStyle(stage);
+      const padX = parseFloat(stageStyle.paddingLeft) + parseFloat(stageStyle.paddingRight);
+      const availableWidth = Math.max(260, stage.clientWidth - padX - 8);
+      const nextZoom = Math.min(1, availableWidth / canvas.width);
+
+      setZoom(nextZoom, true);
+
+      if (!silent) {
+        setStatus(`ウィンドウ幅に合わせました: ${Math.round(zoom * 100)}%`, "ok");
+      }
+    }
+
+    function hasImage() {
+      return !!baseImage;
+    }
+
+    function applyLineStyle(item) {
+      if (item.lineStyle === "dashed") {
+        ctx.setLineDash([item.lineWidth * 4, item.lineWidth * 2.2]);
+      } else if (item.lineStyle === "dotted") {
+        ctx.setLineDash([item.lineWidth, item.lineWidth * 2.2]);
+      } else {
+        ctx.setLineDash([]);
+      }
+    }
+
+    function getStyle() {
+      return {
+        color: strokeColorEl.value,
+        lineStyle: lineStyleEl.value,
+        lineWidth: Number(lineWidthEl.value || 4),
+        arrowSize: Number(arrowSizeEl.value || 28),
+        fontSize: Number(fontSizeEl.value || 30),
+        fontWeight: Number(fontWeightEl.value || 700),
+        fillMode: fillModeEl.value,
+        badgeShape: badgeShapeEl.value,
+        blurStrength: Number(blurStrengthEl.value || 12)
+      };
+    }
+
+    function getTextMetricsForItem(item) {
+      ctx.save();
+      ctx.font = `${item.fontWeight || 700} ${item.fontSize}px system-ui, -apple-system, "Yu Gothic UI", sans-serif`;
+      const lines = String(item.text || "").split("\n");
+      const lineHeight = item.fontSize * 1.25;
+      let width = 0;
+      for (const line of lines) {
+        width = Math.max(width, ctx.measureText(line).width);
+      }
+      ctx.restore();
+
+      return {
+        width,
+        height: Math.max(lineHeight, lines.length * lineHeight),
+        lineHeight
+      };
+    }
+
+    function findTextAnnotationAt(point) {
+      for (let i = annotations.length - 1; i >= 0; i--) {
+        const item = annotations[i];
+        if (item.type !== "text") continue;
+
+        const metrics = getTextMetricsForItem(item);
+        const pad = item.fontSize * 0.45;
+        const x1 = item.x - pad;
+        const y1 = item.y - pad;
+        const x2 = item.x + metrics.width + pad;
+        const y2 = item.y + metrics.height + pad;
+
+        if (point.x >= x1 && point.x <= x2 && point.y >= y1 && point.y <= y2) {
+          return { item, index: i };
+        }
+      }
+      return null;
+    }
+
+    function showInlineTextEditor(x, y, initialText = "", index = null) {
+      if (!hasImage()) return;
+
+      if (editingText) commitInlineTextEditor(false);
+
+      const style = index === null
+        ? getStyle()
+        : { ...getStyle(), ...annotations[index] };
+
+      editingText = {
+        x,
+        y,
+        index,
+        style,
+        original: index === null ? null : { ...annotations[index] }
+      };
+
+      inlineTextEditor.value = initialText;
+      inlineTextEditor.style.display = "block";
+      inlineTextEditor.style.left = Math.round(x * zoom) + "px";
+      inlineTextEditor.style.top = Math.round(y * zoom) + "px";
+      inlineTextEditor.style.fontSize = Math.max(12, Math.round(style.fontSize * zoom)) + "px";
+      inlineTextEditor.style.fontWeight = String(style.fontWeight || 700);
+      inlineTextEditor.style.color = style.color;
+      inlineTextEditor.style.borderColor = style.color;
+      inlineTextEditor.style.width = Math.max(180, Math.round(320 * zoom)) + "px";
+      inlineTextEditor.style.height = Math.max(44, Math.round(82 * zoom)) + "px";
+
+      inlineTextGuide.style.display = "block";
+      inlineTextGuide.style.left = Math.round(x * zoom) + "px";
+      inlineTextGuide.style.top = Math.round((y * zoom) - 28) + "px";
+
+      requestAnimationFrame(() => {
+        inlineTextEditor.focus({ preventScroll: true });
+        inlineTextEditor.select();
+      });
+
+      setStatus("文字入力欄を開きました。入力後、Enterで確定、Shift+Enterで改行です。");
+    }
+
+    function hideInlineTextEditor() {
+      inlineTextEditor.style.display = "none";
+      inlineTextGuide.style.display = "none";
+      editingText = null;
+      stage.focus();
+    }
+
+    function commitInlineTextEditor(shouldRender = true) {
+      if (!editingText) return;
+
+      const text = inlineTextEditor.value.trimEnd();
+
+      if (text.trim()) {
+        const item = {
+          type: "text",
+          x: editingText.x,
+          y: editingText.y,
+          text,
+          ...editingText.style
+        };
+
+        if (editingText.index === null) {
+          annotations.push(item);
+        } else {
+          annotations[editingText.index] = item;
+        }
+
+        redoStack = [];
+        if (shouldRender) setStatus("文字を確定しました。", "ok");
+      } else if (editingText.index !== null) {
+        annotations.splice(editingText.index, 1);
+        redoStack = [];
+        if (shouldRender) setStatus("空文字のため文字注釈を削除しました。");
+      }
+
+      hideInlineTextEditor();
+      if (shouldRender) render();
+    }
+
+    function cancelInlineTextEditor() {
+      if (!editingText) return;
+
+      if (editingText.index !== null && editingText.original) {
+        annotations[editingText.index] = editingText.original;
+      }
+
+      hideInlineTextEditor();
+      render();
+      setStatus("文字入力をキャンセルしました。");
+    }
+
+    function repositionInlineTextEditor() {
+      if (!editingText || inlineTextEditor.style.display === "none") return;
+
+      inlineTextEditor.style.left = Math.round(editingText.x * zoom) + "px";
+      inlineTextEditor.style.top = Math.round(editingText.y * zoom) + "px";
+      inlineTextEditor.style.fontSize = Math.max(12, Math.round(editingText.style.fontSize * zoom)) + "px";
+
+      inlineTextGuide.style.left = Math.round(editingText.x * zoom) + "px";
+      inlineTextGuide.style.top = Math.round((editingText.y * zoom) - 28) + "px";
+    }
+
+    function getPoint(event) {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = event.clientX ?? (event.touches && event.touches[0]?.clientX);
+      const clientY = event.clientY ?? (event.touches && event.touches[0]?.clientY);
+
+      return {
+        x: (clientX - rect.left) * (canvas.width / rect.width),
+        y: (clientY - rect.top) * (canvas.height / rect.height)
+      };
+    }
+
+    function normalizeRect(x, y, w, h) {
+      const nx = w < 0 ? x + w : x;
+      const ny = h < 0 ? y + h : y;
+      return { x: nx, y: ny, w: Math.abs(w), h: Math.abs(h) };
+    }
+
+    function render(includeSelection = true) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (baseImage) {
+        ctx.drawImage(baseImage, 0, 0, canvas.width, canvas.height);
+      } else {
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      for (const item of annotations) {
+        draw(item);
+      }
+
+      if (preview) {
+        draw(preview);
+      }
+
+      if (includeSelection) {
+        drawSelectedOverlay();
+      }
+
+      empty.style.display = baseImage ? "none" : "grid";
+      zoomControls.style.display = baseImage ? "flex" : "none";
+    }
+
+
+    function cloneAnnotation(item) {
+      return JSON.parse(JSON.stringify(item));
+    }
+
+    function getAnnotationBounds(item) {
+      if (!item) return null;
+
+      if (item.type === "rect" || item.type === "ellipse" || item.type === "blur") {
+        return normalizeRect(item.x, item.y, item.w, item.h);
+      }
+
+      if (item.type === "line" || item.type === "arrow") {
+        const x1 = item.x;
+        const y1 = item.y;
+        const x2 = item.x + item.w;
+        const y2 = item.y + item.h;
+        const pad = Math.max(10, (item.lineWidth || 4) * 2, item.arrowSize || 0);
+        return {
+          x: Math.min(x1, x2) - pad,
+          y: Math.min(y1, y2) - pad,
+          w: Math.abs(x2 - x1) + pad * 2,
+          h: Math.abs(y2 - y1) + pad * 2
+        };
+      }
+
+      if (item.type === "freehand") {
+        if (!item.points || item.points.length === 0) return null;
+        let minX = Infinity;
+        let minY = Infinity;
+        let maxX = -Infinity;
+        let maxY = -Infinity;
+        for (const p of item.points) {
+          minX = Math.min(minX, p.x);
+          minY = Math.min(minY, p.y);
+          maxX = Math.max(maxX, p.x);
+          maxY = Math.max(maxY, p.y);
+        }
+        const pad = Math.max(8, (item.lineWidth || 4) * 2);
+        return { x: minX - pad, y: minY - pad, w: maxX - minX + pad * 2, h: maxY - minY + pad * 2 };
+      }
+
+      if (item.type === "text") {
+        const m = getTextMetricsForItem(item);
+        const pad = item.fontSize * 0.45;
+        return { x: item.x - pad, y: item.y - pad, w: m.width + pad * 2, h: m.height + pad * 2 };
+      }
+
+      if (item.type === "badge") {
+        const r = item.fontSize * .72;
+        return { x: item.x - r, y: item.y - r, w: r * 2, h: r * 2 };
+      }
+
+      return null;
+    }
+
+    function pointInRect(point, rect, pad = 0) {
+      return point.x >= rect.x - pad &&
+        point.x <= rect.x + rect.w + pad &&
+        point.y >= rect.y - pad &&
+        point.y <= rect.y + rect.h + pad;
+    }
+
+    function pointToSegmentDistance(px, py, x1, y1, x2, y2) {
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      if (dx === 0 && dy === 0) {
+        return Math.hypot(px - x1, py - y1);
+      }
+      const t = Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy)));
+      const x = x1 + t * dx;
+      const y = y1 + t * dy;
+      return Math.hypot(px - x, py - y);
+    }
+
+    function hitTestAnnotation(point) {
+      for (let i = annotations.length - 1; i >= 0; i--) {
+        const item = annotations[i];
+        const bounds = getAnnotationBounds(item);
+        if (!bounds) continue;
+
+        if (item.type === "line" || item.type === "arrow") {
+          const d = pointToSegmentDistance(point.x, point.y, item.x, item.y, item.x + item.w, item.y + item.h);
+          if (d <= Math.max(10, (item.lineWidth || 4) * 2.5)) return i;
+          if (pointInRect(point, bounds, 2)) return i;
+        } else if (pointInRect(point, bounds, 4)) {
+          return i;
+        }
+      }
+      return null;
+    }
+
+    function getHandlePoints(item) {
+      if (!item) return [];
+
+      if (item.type === "line" || item.type === "arrow") {
+        return [
+          { name: "start", x: item.x, y: item.y },
+          { name: "end", x: item.x + item.w, y: item.y + item.h }
+        ];
+      }
+
+      if (item.type === "rect" || item.type === "ellipse" || item.type === "blur") {
+        const b = getAnnotationBounds(item);
+        return [
+          { name: "nw", x: b.x, y: b.y },
+          { name: "ne", x: b.x + b.w, y: b.y },
+          { name: "se", x: b.x + b.w, y: b.y + b.h },
+          { name: "sw", x: b.x, y: b.y + b.h }
+        ];
+      }
+
+      return [];
+    }
+
+    function hitTestHandle(point) {
+      if (selectedIndex === null) return null;
+      const item = annotations[selectedIndex];
+      const handles = getHandlePoints(item);
+      const size = Math.max(8 / zoom, 6);
+
+      for (const h of handles) {
+        if (Math.abs(point.x - h.x) <= size && Math.abs(point.y - h.y) <= size) {
+          return h.name;
+        }
+      }
+
+      return null;
+    }
+
+    function drawSelectedOverlay() {
+      if (selectedIndex === null || !annotations[selectedIndex]) return;
+
+      const item = annotations[selectedIndex];
+      const b = getAnnotationBounds(item);
+      if (!b) return;
+
+      ctx.save();
+      ctx.setLineDash([8 / zoom, 5 / zoom]);
+      ctx.lineWidth = Math.max(1.5 / zoom, 1);
+      ctx.strokeStyle = "#2563eb";
+      ctx.strokeRect(b.x, b.y, b.w, b.h);
+
+      ctx.setLineDash([]);
+      const handles = getHandlePoints(item);
+      const s = Math.max(9 / zoom, 5);
+
+      for (const h of handles) {
+        ctx.fillStyle = "#ffffff";
+        ctx.strokeStyle = "#2563eb";
+        ctx.lineWidth = Math.max(2 / zoom, 1);
+        ctx.fillRect(h.x - s / 2, h.y - s / 2, s, s);
+        ctx.strokeRect(h.x - s / 2, h.y - s / 2, s, s);
+      }
+
+      ctx.restore();
+    }
+
+    function moveAnnotation(item, dx, dy) {
+      if (item.type === "freehand") {
+        item.points = item.points.map(p => ({ x: p.x + dx, y: p.y + dy }));
+        return;
+      }
+
+      item.x += dx;
+      item.y += dy;
+    }
+
+    function resizeAnnotation(item, original, handle, point, shiftKey = false) {
+      if (item.type === "line" || item.type === "arrow") {
+        if (handle === "start") {
+          const endX = original.x + original.w;
+          const endY = original.y + original.h;
+          item.x = point.x;
+          item.y = point.y;
+          item.w = endX - point.x;
+          item.h = endY - point.y;
+        }
+
+        if (handle === "end") {
+          item.x = original.x;
+          item.y = original.y;
+          item.w = point.x - original.x;
+          item.h = point.y - original.y;
+        }
+
+        return;
+      }
+
+      if (!(item.type === "rect" || item.type === "ellipse" || item.type === "blur")) return;
+
+      const b = getAnnotationBounds(original);
+      let x1 = b.x;
+      let y1 = b.y;
+      let x2 = b.x + b.w;
+      let y2 = b.y + b.h;
+
+      if (handle === "nw") {
+        x1 = point.x;
+        y1 = point.y;
+      } else if (handle === "ne") {
+        x2 = point.x;
+        y1 = point.y;
+      } else if (handle === "se") {
+        x2 = point.x;
+        y2 = point.y;
+      } else if (handle === "sw") {
+        x1 = point.x;
+        y2 = point.y;
+      }
+
+      if (shiftKey && (item.type === "rect" || item.type === "ellipse")) {
+        const w = x2 - x1;
+        const h = y2 - y1;
+        const size = Math.max(Math.abs(w), Math.abs(h));
+        if (handle.includes("w")) x1 = x2 - Math.sign(w || 1) * size;
+        else x2 = x1 + Math.sign(w || 1) * size;
+        if (handle.includes("n")) y1 = y2 - Math.sign(h || 1) * size;
+        else y2 = y1 + Math.sign(h || 1) * size;
+      }
+
+      item.x = Math.min(x1, x2);
+      item.y = Math.min(y1, y2);
+      item.w = Math.abs(x2 - x1);
+      item.h = Math.abs(y2 - y1);
+    }
+
+    function selectAnnotation(index) {
+      selectedIndex = index;
+      selectMode = null;
+      activeHandle = null;
+
+      if (index === null || !annotations[index]) {
+        updateAppearancePanel();
+        setStatus("選択を解除しました。");
+        render();
+        return;
+      }
+
+      updateControlsFromItem(annotations[index]);
+      updateAppearancePanel();
+      setStatus("注釈を選択しました。ドラッグで移動、ハンドルで編集、Deleteで削除できます。", "ok");
+      render();
+    }
+
+    function deleteSelectedAnnotation() {
+      if (selectedIndex === null) return;
+      annotations.splice(selectedIndex, 1);
+      selectedIndex = null;
+      redoStack = [];
+      updateAppearancePanel();
+      render();
+      setStatus("選択中の注釈を削除しました。");
+    }
+
+    function updateControlsFromItem(item) {
+      if (!item) return;
+      if (item.color) strokeColorEl.value = item.color;
+      if (item.lineStyle) lineStyleEl.value = item.lineStyle;
+      if (item.lineWidth) lineWidthEl.value = item.lineWidth;
+      if (item.arrowSize) arrowSizeEl.value = item.arrowSize;
+      if (item.fontSize) fontSizeEl.value = item.fontSize;
+      if (item.fontWeight) fontWeightEl.value = item.fontWeight;
+      if (item.fillMode) fillModeEl.value = item.fillMode;
+      if (item.badgeShape) badgeShapeEl.value = item.badgeShape;
+      if (item.blurStrength) blurStrengthEl.value = item.blurStrength;
+    }
+
+    function applyCurrentStyleToSelected() {
+      if (tool !== "select" || selectedIndex === null || !annotations[selectedIndex]) return;
+
+      const item = annotations[selectedIndex];
+      Object.assign(item, getStyle());
+      redoStack = [];
+      render();
+      setStatus("選択中の注釈の見た目を更新しました。", "ok");
+    }
+
+    function updateAppearancePanel() {
+      let contextTool = tool;
+
+      if (tool === "select") {
+        contextTool = selectedIndex === null || !annotations[selectedIndex]
+          ? "select"
+          : annotations[selectedIndex].type;
+      }
+
+      document.querySelectorAll(".setting-row").forEach(row => {
+        const list = row.dataset.showFor.split(/\s+/);
+        row.classList.toggle("visible", list.includes(contextTool));
+      });
+
+      selectNoteEl.classList.toggle("visible", tool === "select");
+
+      colorLabelEl.textContent =
+        contextTool === "text" ? "文字色" :
+        contextTool === "blur" ? "枠線色" :
+        "色";
+
+      if (tool === "select" && selectedIndex === null) {
+        appearanceHelpEl.textContent = "注釈を選択すると、その注釈に対応した見た目設定へ切り替わります。";
+      } else {
+        appearanceHelpEl.textContent = appearanceHelp[contextTool] || "";
+      }
+    }
+
+    function applyFill(item) {
+      if (item.fillMode === "none") return null;
+
+      const old = ctx.globalAlpha;
+      if (item.fillMode === "light") {
+        ctx.globalAlpha = 0.16;
+      }
+      ctx.fillStyle = item.color;
+      return () => {
+        ctx.globalAlpha = old;
+      };
+    }
+
+    function draw(item) {
+      ctx.save();
+      ctx.strokeStyle = item.color;
+      ctx.fillStyle = item.color;
+      ctx.lineWidth = item.lineWidth;
+      ctx.lineCap = item.lineStyle === "dotted" ? "round" : "round";
+      ctx.lineJoin = "round";
+      applyLineStyle(item);
+
+      if (item.type === "rect") {
+        const r = normalizeRect(item.x, item.y, item.w, item.h);
+        const restoreAlpha = applyFill(item);
+        if (item.fillMode !== "none") ctx.fillRect(r.x, r.y, r.w, r.h);
+        if (restoreAlpha) restoreAlpha();
+        if (item.fillMode !== "solid") ctx.strokeRect(r.x, r.y, r.w, r.h);
+      }
+
+      if (item.type === "ellipse") {
+        const r = normalizeRect(item.x, item.y, item.w, item.h);
+        ctx.beginPath();
+        ctx.ellipse(r.x + r.w / 2, r.y + r.h / 2, Math.max(1, r.w / 2), Math.max(1, r.h / 2), 0, 0, Math.PI * 2);
+        const restoreAlpha = applyFill(item);
+        if (item.fillMode !== "none") ctx.fill();
+        if (restoreAlpha) restoreAlpha();
+        if (item.fillMode !== "solid") ctx.stroke();
+      }
+
+      if (item.type === "line") {
+        ctx.beginPath();
+        ctx.moveTo(item.x, item.y);
+        ctx.lineTo(item.x + item.w, item.y + item.h);
+        ctx.stroke();
+      }
+
+      if (item.type === "arrow") {
+        drawArrow(item.x, item.y, item.x + item.w, item.y + item.h, item);
+      }
+
+      if (item.type === "freehand") {
+        if (item.points.length > 1) {
+          ctx.beginPath();
+          ctx.moveTo(item.points[0].x, item.points[0].y);
+          for (const p of item.points.slice(1)) {
+            ctx.lineTo(p.x, p.y);
+          }
+          ctx.stroke();
+        }
+      }
+
+      if (item.type === "text") {
+        ctx.setLineDash([]);
+        ctx.font = `${item.fontWeight || 700} ${item.fontSize}px system-ui, -apple-system, "Yu Gothic UI", sans-serif`;
+        ctx.textBaseline = "top";
+
+        const lines = String(item.text || "").split("\n");
+        const lh = item.fontSize * 1.25;
+        const padX = Math.round(item.fontSize * .35);
+        const padY = Math.round(item.fontSize * .22);
+
+        let maxWidth = 0;
+        for (const line of lines) {
+          maxWidth = Math.max(maxWidth, ctx.measureText(line).width);
+        }
+
+        if (item.fillMode !== "none") {
+          const old = ctx.globalAlpha;
+          ctx.globalAlpha = item.fillMode === "light" ? .18 : 1;
+          ctx.fillStyle = item.color;
+          ctx.fillRect(item.x - padX, item.y - padY, maxWidth + padX * 2, lines.length * lh + padY * 2);
+          ctx.globalAlpha = old;
+          ctx.fillStyle = item.fillMode === "solid" ? "#ffffff" : item.color;
+        }
+
+        lines.forEach((line, i) => {
+          ctx.fillText(line, item.x, item.y + i * lh);
+        });
+      }
+
+      if (item.type === "badge") {
+        ctx.setLineDash([]);
+        const r = item.fontSize * .72;
+        ctx.fillStyle = item.color;
+
+        if (item.badgeShape === "square") {
+          const size = r * 2;
+          const corner = Math.max(6, item.fontSize * .22);
+          roundRect(ctx, item.x - r, item.y - r, size, size, corner);
+          ctx.fill();
+        } else {
+          ctx.beginPath();
+          ctx.arc(item.x, item.y, r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.fillStyle = "#ffffff";
+        ctx.font = `800 ${item.fontSize}px system-ui, -apple-system, "Yu Gothic UI", sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(item.text, item.x, item.y + 1);
+      }
+
+      if (item.type === "blur") {
+        ctx.setLineDash([]);
+        const r = normalizeRect(item.x, item.y, item.w, item.h);
+        if (r.w > 2 && r.h > 2) {
+          const imageData = ctx.getImageData(r.x, r.y, r.w, r.h);
+          const temp = document.createElement("canvas");
+          const tctx = temp.getContext("2d");
+          const strength = clamp(item.blurStrength || 12, 4, 40);
+
+          temp.width = Math.max(1, Math.round(r.w / strength));
+          temp.height = Math.max(1, Math.round(r.h / strength));
+
+          const full = document.createElement("canvas");
+          const fctx = full.getContext("2d");
+          full.width = r.w;
+          full.height = r.h;
+          fctx.putImageData(imageData, 0, 0);
+
+          tctx.imageSmoothingEnabled = false;
+          tctx.drawImage(full, 0, 0, temp.width, temp.height);
+          ctx.imageSmoothingEnabled = false;
+          ctx.drawImage(temp, 0, 0, temp.width, temp.height, r.x, r.y, r.w, r.h);
+          ctx.imageSmoothingEnabled = true;
+
+        }
+      }
+
+      ctx.restore();
+    }
+
+    function roundRect(context, x, y, w, h, r) {
+      const radius = Math.min(r, w / 2, h / 2);
+      context.beginPath();
+      context.moveTo(x + radius, y);
+      context.lineTo(x + w - radius, y);
+      context.quadraticCurveTo(x + w, y, x + w, y + radius);
+      context.lineTo(x + w, y + h - radius);
+      context.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+      context.lineTo(x + radius, y + h);
+      context.quadraticCurveTo(x, y + h, x, y + h - radius);
+      context.lineTo(x, y + radius);
+      context.quadraticCurveTo(x, y, x + radius, y);
+      context.closePath();
+    }
+
+    function drawArrow(x1, y1, x2, y2, item) {
+      const angle = Math.atan2(y2 - y1, x2 - x1);
+      const head = Math.max(8, item.arrowSize || 28);
+
+      ctx.strokeStyle = item.color;
+      ctx.fillStyle = item.color;
+      ctx.lineWidth = item.lineWidth;
+      applyLineStyle(item);
+
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.moveTo(x2, y2);
+      ctx.lineTo(x2 - head * Math.cos(angle - Math.PI / 6), y2 - head * Math.sin(angle - Math.PI / 6));
+      ctx.lineTo(x2 - head * Math.cos(angle + Math.PI / 6), y2 - head * Math.sin(angle + Math.PI / 6));
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    function pushAnnotation(item) {
+      annotations.push(item);
+      redoStack = [];
+      render();
+    }
+
+    function beginDraw(event) {
+      if (editingText && tool !== "text") {
+        commitInlineTextEditor();
+      }
+
+      if (!hasImage()) {
+        setStatus("先にスクショ画像を貼り付けてください。", "error");
+        return;
+      }
+
+      const p = getPoint(event);
+
+      if (tool === "select") {
+        const handle = hitTestHandle(p);
+        if (handle && selectedIndex !== null) {
+          selectMode = "resize";
+          activeHandle = handle;
+          selectStart = p;
+          selectOriginal = cloneAnnotation(annotations[selectedIndex]);
+          return;
+        }
+
+        const hit = hitTestAnnotation(p);
+        if (hit !== null) {
+          selectAnnotation(hit);
+          selectMode = "move";
+          activeHandle = null;
+          selectStart = p;
+          selectOriginal = cloneAnnotation(annotations[hit]);
+          return;
+        }
+
+        selectAnnotation(null);
+        return;
+      }
+
+      selectedIndex = null;
+      updateAppearancePanel();
+
+      if (tool === "text") {
+        const hit = findTextAnnotationAt(p);
+        if (hit) {
+          showInlineTextEditor(hit.item.x, hit.item.y, hit.item.text, hit.index);
+        } else {
+          showInlineTextEditor(p.x, p.y, "", null);
+        }
+        return;
+      }
+
+      if (tool === "badge") {
+        pushAnnotation({ type: "badge", x: p.x, y: p.y, text: String(badgeCount++), ...getStyle() });
+        setStatus("番号マーカーを追加しました。", "ok");
+        return;
+      }
+
+      drawing = true;
+      start = p;
+
+      if (tool === "freehand") {
+        preview = { type: "freehand", points: [p], ...getStyle() };
+      } else {
+        preview = { type: tool, x: p.x, y: p.y, w: 0, h: 0, ...getStyle() };
+      }
+
+      render();
+    }
+
+    function moveDraw(event) {
+      if (tool === "select" && selectMode && selectedIndex !== null && selectOriginal) {
+        event.preventDefault();
+
+        const p = getPoint(event);
+        const item = annotations[selectedIndex];
+
+        if (selectMode === "move") {
+          const dx = p.x - selectStart.x;
+          const dy = p.y - selectStart.y;
+          const moved = cloneAnnotation(selectOriginal);
+          moveAnnotation(moved, dx, dy);
+          annotations[selectedIndex] = moved;
+        }
+
+        if (selectMode === "resize") {
+          const resized = cloneAnnotation(selectOriginal);
+          resizeAnnotation(resized, selectOriginal, activeHandle, p, event.shiftKey);
+          annotations[selectedIndex] = resized;
+        }
+
+        render();
+        return;
+      }
+
+      if (!drawing || !preview || !start) return;
+      event.preventDefault();
+
+      const p = getPoint(event);
+
+      if (tool === "freehand") {
+        preview.points.push(p);
+      } else {
+        preview.w = p.x - start.x;
+        preview.h = p.y - start.y;
+
+        if (event.shiftKey && (tool === "rect" || tool === "ellipse")) {
+          const size = Math.max(Math.abs(preview.w), Math.abs(preview.h));
+          preview.w = preview.w < 0 ? -size : size;
+          preview.h = preview.h < 0 ? -size : size;
+        }
+      }
+
+      render();
+    }
+
+    function endDraw() {
+      if (tool === "select" && selectMode) {
+        selectMode = null;
+        activeHandle = null;
+        selectStart = null;
+        selectOriginal = null;
+        redoStack = [];
+        return;
+      }
+
+      if (!drawing || !preview) return;
+
+      const item = preview;
+      drawing = false;
+      start = null;
+      preview = null;
+
+      const isSmall =
+        item.type !== "freehand" &&
+        Math.abs(item.w || 0) < 3 &&
+        Math.abs(item.h || 0) < 3;
+
+      if (!isSmall) {
+        pushAnnotation(item);
+        setStatus("注釈を追加しました。", "ok");
+      } else {
+        render();
+      }
+    }
+
+    function setTool(next) {
+      if (editingText) commitInlineTextEditor();
+
+      tool = next;
+
+      if (next !== "select") {
+        selectedIndex = null;
+        selectMode = null;
+        activeHandle = null;
+      }
+
+      document.querySelectorAll(".tool").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.tool === next);
+      });
+
+      toolHelpEl.textContent = toolHelp[next] || "";
+      updateAppearancePanel();
+      render();
+
+      setStatus(`ツール: ${document.querySelector(`[data-tool="${next}"]`).textContent}`);
+    }
+
+    async function loadImageBlob(blob) {
+      if (!blob || !blob.type.startsWith("image/")) {
+        setStatus("画像データではありません。", "error");
+        return;
+      }
+
+      const dataUrl = await blobToDataUrl(blob);
+      await loadImageDataUrl(dataUrl);
+    }
+
+    function blobToDataUrl(blob) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    function loadImageDataUrl(dataUrl) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+
+        img.onload = () => {
+          baseImage = img;
+          baseImageDataUrl = dataUrl;
+
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+
+          canvasWrap.style.minWidth = "0";
+          canvasWrap.style.minHeight = "0";
+
+          hideInlineTextEditor();
+          annotations = [];
+          redoStack = [];
+          preview = null;
+          drawing = false;
+          selectedIndex = null;
+          selectMode = null;
+          activeHandle = null;
+          badgeCount = 1;
+
+          render();
+          fitToWindowWidth(true);
+          setStatus(`画像を読み込みました: ${img.naturalWidth} × ${img.naturalHeight}px / 表示 ${Math.round(zoom * 100)}%`, "ok");
+
+          setTimeout(() => {
+            stage.scrollTo({ left: 0, top: 0, behavior: "smooth" });
+          }, 0);
+
+          resolve();
+        };
+
+        img.onerror = reject;
+        img.src = dataUrl;
+      });
+    }
+
+    async function readClipboardImage() {
+      if (!navigator.clipboard || !navigator.clipboard.read) {
+        setStatus("この環境ではクリップボード画像の直接読み込みに対応していません。Ctrl+Vで貼り付けてください。", "error");
+        return;
+      }
+
+      try {
+        const items = await navigator.clipboard.read();
+        for (const item of items) {
+          const imageType = item.types.find(type => type.startsWith("image/"));
+          if (imageType) {
+            const blob = await item.getType(imageType);
+            await loadImageBlob(blob);
+            return;
+          }
+        }
+        setStatus("クリップボード内に画像が見つかりません。", "error");
+      } catch (error) {
+        setStatus("クリップボード読み込みがブラウザにブロックされました。Ctrl+Vで貼り付けてください。", "error");
+      }
+    }
+
+    function canvasToBlob(type = "image/png", quality) {
+      return new Promise(resolve => canvas.toBlob(resolve, type, quality));
+    }
+
+    async function copyImage() {
+      if (editingText) commitInlineTextEditor(false);
+
+      if (!hasImage()) {
+        setStatus("コピーする画像がありません。", "error");
+        return;
+      }
+
+      render(false);
+
+      try {
+        const blob = await canvasToBlob("image/png");
+        if (!blob) throw new Error("Blob作成に失敗しました。");
+
+        if (!navigator.clipboard || !window.ClipboardItem) {
+          throw new Error("ClipboardItemに未対応です。");
+        }
+
+        await navigator.clipboard.write([
+          new ClipboardItem({ "image/png": blob })
+        ]);
+
+        setStatus("編集済み画像をクリップボードにコピーしました。", "ok");
+      } catch (error) {
+        setStatus("コピーに失敗しました。代わりにPNG保存してください。", "error");
+        saveImage();
+      } finally {
+        render(true);
+      }
+    }
+
+    function saveImage() {
+      if (editingText) commitInlineTextEditor(false);
+
+      if (!hasImage()) {
+        setStatus("保存する画像がありません。", "error");
+        return;
+      }
+
+      render(false);
+
+      const link = document.createElement("a");
+      const now = new Date();
+      const pad = n => String(n).padStart(2, "0");
+      const filename = `annotated_${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}.png`;
+
+      link.download = filename;
+      link.href = canvas.toDataURL("image/png");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      render(true);
+      setStatus(`PNGを保存しました: ${filename}`, "ok");
+    }
+
+    function undo() {
+      if (editingText) {
+        cancelInlineTextEditor();
+        return;
+      }
+
+      if (annotations.length === 0) return;
+      redoStack.push(annotations.pop());
+      selectedIndex = null;
+      updateAppearancePanel();
+      render();
+      setStatus("1つ戻しました。");
+    }
+
+    function redo() {
+      if (annotations.length === 0 && editingText) return;
+      if (redoStack.length === 0) return;
+      annotations.push(redoStack.pop());
+      selectedIndex = null;
+      updateAppearancePanel();
+      render();
+      setStatus("1つやり直しました。");
+    }
+
+    function clearAnnotations() {
+      hideInlineTextEditor();
+      annotations = [];
+      redoStack = [];
+      selectedIndex = null;
+      selectMode = null;
+      activeHandle = null;
+      badgeCount = 1;
+      updateAppearancePanel();
+      render();
+      setStatus("注釈をクリアしました。");
+    }
+
+    async function resetImage() {
+      hideInlineTextEditor();
+      if (!baseImageDataUrl) return;
+      await loadImageDataUrl(baseImageDataUrl);
+      setStatus("画像を初期状態に戻しました。");
+    }
+
+    document.querySelectorAll(".tool").forEach(btn => {
+      btn.addEventListener("click", () => setTool(btn.dataset.tool));
+    });
+
+    canvas.addEventListener("pointerdown", event => {
+      if (tool === "text") {
+        event.preventDefault();
+      } else {
+        canvas.setPointerCapture(event.pointerId);
+      }
+      beginDraw(event);
+    });
+
+    canvas.addEventListener("pointermove", moveDraw);
+    canvas.addEventListener("pointerup", endDraw);
+    canvas.addEventListener("pointercancel", endDraw);
+
+    canvas.addEventListener("dblclick", event => {
+      if (tool !== "select" || selectedIndex === null) return;
+      const item = annotations[selectedIndex];
+      if (!item || item.type !== "text") return;
+      event.preventDefault();
+      showInlineTextEditor(item.x, item.y, item.text, selectedIndex);
+    });
+
+    inlineTextEditor.addEventListener("compositionstart", () => {
+      imeComposing = true;
+    });
+
+    inlineTextEditor.addEventListener("compositionend", () => {
+      imeComposing = false;
+    });
+
+    inlineTextEditor.addEventListener("keydown", event => {
+      const isImeEnter = event.isComposing || imeComposing || event.keyCode === 229;
+
+      if (isImeEnter) {
+        return;
+      }
+
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        commitInlineTextEditor();
+      }
+
+      if (event.key === "Escape") {
+        event.preventDefault();
+        cancelInlineTextEditor();
+      }
+    });
+
+    inlineTextEditor.addEventListener("blur", () => {
+      // ここで自動確定すると、Canvasクリック直後のフォーカス移動で入力欄が即閉じる環境がある。
+      // 確定は Enter、ツール切替、コピー、保存、別の文字位置クリックで行う。
+    });
+
+    inlineTextEditor.addEventListener("pointerdown", event => {
+      event.stopPropagation();
+    });
+
+    inlineTextEditor.addEventListener("click", event => {
+      event.stopPropagation();
+    });
+
+    document.addEventListener("paste", async event => {
+      if (editingText && document.activeElement === inlineTextEditor) return;
+
+      const items = Array.from(event.clipboardData?.items || []);
+      const imageItem = items.find(item => item.type.startsWith("image/"));
+
+      if (!imageItem) {
+        setStatus("貼り付け内容に画像がありません。", "error");
+        return;
+      }
+
+      const file = imageItem.getAsFile();
+      await loadImageBlob(file);
+      event.preventDefault();
+    });
+
+    document.addEventListener("keydown", event => {
+      if (editingText && event.target === inlineTextEditor) return;
+
+      if (tool === "select" && selectedIndex !== null) {
+        if (event.key === "Delete" || event.key === "Backspace") {
+          event.preventDefault();
+          deleteSelectedAnnotation();
+          return;
+        }
+
+        if (event.key === "Enter" && annotations[selectedIndex]?.type === "text") {
+          event.preventDefault();
+          const item = annotations[selectedIndex];
+          showInlineTextEditor(item.x, item.y, item.text, selectedIndex);
+          return;
+        }
+      }
+
+      const isMac = navigator.platform.toUpperCase().includes("MAC");
+      const mod = isMac ? event.metaKey : event.ctrlKey;
+
+      if (!mod) return;
+
+      const key = event.key.toLowerCase();
+
+      if (key === "z") {
+        event.preventDefault();
+        undo();
+      }
+
+      if (key === "y") {
+        event.preventDefault();
+        redo();
+      }
+
+      if (key === "s") {
+        event.preventDefault();
+        saveImage();
+      }
+
+      if (key === "0") {
+        event.preventDefault();
+        setZoom(1);
+      }
+
+      if (key === "+" || key === "=") {
+        event.preventDefault();
+        setZoom(zoom * 1.25);
+      }
+
+      if (key === "-") {
+        event.preventDefault();
+        setZoom(zoom / 1.25);
+      }
+
+      if (key === "c") {
+        event.preventDefault();
+        copyImage();
+      }
+    });
+
+    document.getElementById("undoBtn").addEventListener("click", undo);
+    document.getElementById("redoBtn").addEventListener("click", redo);
+    document.getElementById("clearBtn").addEventListener("click", clearAnnotations);
+    document.getElementById("resetBtn").addEventListener("click", resetImage);
+    document.getElementById("copyBtn").addEventListener("click", copyImage);
+    document.getElementById("copyBtn2").addEventListener("click", copyImage);
+    document.getElementById("saveBtn").addEventListener("click", saveImage);
+    document.getElementById("saveBtn2").addEventListener("click", saveImage);
+    document.getElementById("pasteReadBtn").addEventListener("click", readClipboardImage);
+
+    [strokeColorEl, lineStyleEl, lineWidthEl, arrowSizeEl, fontSizeEl, fontWeightEl, fillModeEl, badgeShapeEl, blurStrengthEl].forEach(control => {
+      control.addEventListener("input", applyCurrentStyleToSelected);
+      control.addEventListener("change", applyCurrentStyleToSelected);
+    });
+
+    document.getElementById("fitBtn").addEventListener("click", () => {
+      fitToWindowWidth();
+      stage.scrollTo({ left: 0, top: 0, behavior: "smooth" });
+    });
+
+    document.getElementById("fitWidthBtn").addEventListener("click", () => {
+      fitToWindowWidth();
+      stage.scrollTo({ left: 0, top: 0, behavior: "smooth" });
+    });
+
+    document.getElementById("zoomResetBtn").addEventListener("click", () => {
+      setZoom(1);
+      stage.scrollTo({ left: 0, top: 0, behavior: "smooth" });
+    });
+
+    document.getElementById("zoomOutBtn").addEventListener("click", () => {
+      setZoom(zoom / 1.25);
+    });
+
+    document.getElementById("zoomInBtn").addEventListener("click", () => {
+      setZoom(zoom * 1.25);
+    });
+
+    window.addEventListener("resize", () => {
+      if (baseImage && zoom <= 1.001) {
+        fitToWindowWidth(true);
+      }
+    });
+
+    document.getElementById("openBtn").addEventListener("click", () => {
+      document.getElementById("fileInput").click();
+    });
+
+    document.getElementById("fileInput").addEventListener("change", async event => {
+      const file = event.target.files?.[0];
+      if (file) await loadImageBlob(file);
+      event.target.value = "";
+    });
+
+    ["dragenter", "dragover"].forEach(type => {
+      stage.addEventListener(type, event => {
+        event.preventDefault();
+        stage.style.outline = "3px solid #2563eb";
+        stage.style.outlineOffset = "-6px";
+      });
+    });
+
+    ["dragleave", "drop"].forEach(type => {
+      stage.addEventListener(type, event => {
+        event.preventDefault();
+        stage.style.outline = "none";
+      });
+    });
+
+    stage.addEventListener("drop", async event => {
+      const file = Array.from(event.dataTransfer.files || []).find(f => f.type.startsWith("image/"));
+      if (file) {
+        await loadImageBlob(file);
+      } else {
+        setStatus("画像ファイルをドロップしてください。", "error");
+      }
+    });
+
+    window.addEventListener("focus", () => {
+      stage.focus();
+    });
+
+    setZoom(1, true);
+    setTool("select");
+    render();
+    stage.focus();
+  </script>
+</body>
+</html>
