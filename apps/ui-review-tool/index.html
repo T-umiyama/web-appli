@@ -263,11 +263,39 @@ async function readEntry(entry,prefix,map){
 
 function textOf(n){return (n.innerText||n.textContent||n.getAttribute('aria-label')||'').replace(/\s+/g,' ').trim().slice(0,240);}
 function queryAll(s){try{return [...frame.contentDocument.querySelectorAll(s)];}catch(_){return [];}}
+const ID_ATTRS=['id','data-testid','data-test','data-cy','data-qa','data-id','data-plan-id','data-room-id','data-action','name'];
+const identityCache=new WeakMap();
+function identityAttrs(n){return Object.fromEntries(ID_ATTRS.filter(k=>n.hasAttribute(k)&&n.getAttribute(k)).map(k=>[k,n.getAttribute(k)]));}
+function identityHints(n){return n.getAttribute('aria-label')?{'aria-label':n.getAttribute('aria-label')}:{};}
+function stableClasses(n){return [...n.classList].filter(c=>!/(?:^|[-_])(active|open|selected|focus|hover|disabled|hidden|show|visible)(?:$|[-_])/i.test(c)&&!/[a-f0-9]{7,}/i.test(c));}
+function identityOf(n){
+ const ancestors=[];for(let p=n.parentElement;p&&p.localName!=='html';p=p.parentElement){const attrs=identityAttrs(p),hints=identityHints(p),classes=stableClasses(p);if(Object.keys(attrs).length||Object.keys(hints).length||classes.length)ancestors.push({tag:p.localName,attrs,hints,classes});}
+ return {attrs:identityAttrs(n),hints:identityHints(n),classes:stableClasses(n),ancestors};
+}
+function snapshotIdentity(s){
+ // v1 records predate identity. Derive the root attributes and ancestor classes
+ // from their existing snapshot; never migrate by describing a selector hit.
+ if(identityCache.has(s))return identityCache.get(s);
+ if(s.identity&&s.identity.attrs&&Array.isArray(s.identity.ancestors)){identityCache.set(s,s.identity);return s.identity;}
+ const template=document.createElement('template');template.innerHTML=s.html;const n=template.content.firstElementChild;
+ const ancestors=s.crumb.split(' > ').slice(0,-1).reverse().map(part=>{
+  const tag=part.match(/^[\w-]+/)?.[0]||'',id=part.match(/#([^.#]+)/)?.[1],classes=[...part.matchAll(/\.([^.#]+)/g)].map(m=>m[1]);
+  return {tag,attrs:id?{id}:{},classes};
+ }).filter(p=>Object.keys(p.attrs).length||p.classes.length);
+ const identity={attrs:n?identityAttrs(n):{},hints:n?identityHints(n):{},classes:n?stableClasses(n):[],ancestors};identityCache.set(s,identity);return identity;
+}
+function matchesAttrs(n,attrs){return Object.entries(attrs).every(([k,v])=>ID_ATTRS.includes(k)&&n.getAttribute(k)===v);}
+function matchesHints(n,hints){return Object.entries(hints||{}).every(([k,v])=>k==='aria-label'&&n.getAttribute(k)===v);}
+function matchesContext(n,ancestors){
+ let p=n.parentElement;
+ for(const saved of ancestors){while(p&&!(p.localName===saved.tag&&matchesAttrs(p,saved.attrs)&&(!Object.keys(saved.attrs).length?matchesHints(p,saved.hints):true)&&saved.classes.every(c=>p.classList.contains(c))))p=p.parentElement;if(!p)return false;p=p.parentElement;}
+ return true;
+}
 function uniqueSelector(node){
  const doc=node.ownerDocument,esc=doc.defaultView.CSS.escape;
  const unique=s=>{try{return doc.querySelectorAll(s).length===1;}catch(_){return false;}};
  if(node.id&&unique('#'+esc(node.id)))return '#'+esc(node.id);
- for(const attr of ['data-testid','data-test','data-cy','data-qa','data-id','name','aria-label']){
+ for(const attr of [...ID_ATTRS.filter(k=>k!=='id'),'aria-label']){
   const value=node.getAttribute(attr);if(value){const s=node.localName+'['+attr+'="'+value.replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/\n/g,'\\a ')+'"]';if(unique(s))return s;}
  }
  const parts=[];let n=node;
@@ -283,14 +311,22 @@ function uniqueSelector(node){
 function breadcrumb(n){const p=[];for(let i=0;n&&i<5;i++,n=n.parentElement)p.unshift(n.localName+(n.id?'#'+n.id:'')+[...n.classList].slice(0,2).map(c=>'.'+c).join(''));return p.join(' > ');}
 function describe(n){
  const clone=n.cloneNode(true);clone.removeAttribute('data-uir-l');for(const x of clone.querySelectorAll('[data-uir-l]'))x.removeAttribute('data-uir-l');
- return {selector:uniqueSelector(n),tag:n.localName,label:n.localName+(n.id?'#'+n.id:'')+[...n.classList].slice(0,2).map(c=>'.'+c).join(''),text:textOf(n),html:clone.outerHTML.slice(0,1200),line:Number(n.getAttribute('data-uir-l'))||null,crumb:breadcrumb(n)};
+ return {selector:uniqueSelector(n),tag:n.localName,label:n.localName+(n.id?'#'+n.id:'')+[...n.classList].slice(0,2).map(c=>'.'+c).join(''),text:textOf(n),html:clone.outerHTML.slice(0,1200),line:Number(n.getAttribute('data-uir-l'))||null,crumb:breadcrumb(n),identity:identityOf(n)};
 }
 function visible(n){if(!n?.isConnected||n.closest('dialog:not([open])'))return false;const s=n.ownerDocument.defaultView.getComputedStyle(n);return s.display!=='none'&&s.visibility!=='hidden'&&n.getClientRects().length>0;}
 function resolveAnn(a){
- if(!loaded||!frame.contentDocument){a.vis='pending';return;}
- let n=queryAll(a.snap.selector).find(x=>x.localName===a.snap.tag)||null;
- if(!n||(a.snap.text&&textOf(n)!==a.snap.text)){const candidates=[...frame.contentDocument.getElementsByTagName(a.snap.tag)].filter(x=>textOf(x)===a.snap.text);if(candidates.length===1)n=candidates[0];}
- a.el=n;a.vis=n?(visible(n)?'ok':'hidden'):'missing';
+ if(!loaded||!frame.contentDocument){a.el=null;a.vis='pending';return;}
+ const identity=snapshotIdentity(a.snap),attrs=identity.attrs;
+ const esc=frame.contentWindow.CSS.escape,queryAttrs=Object.keys(attrs).length?attrs:identity.hints||{};
+ const selector=esc(a.snap.tag)+Object.entries(queryAttrs).map(([k,v])=>'['+esc(k)+'='+esc(v)+']').join('')+(!Object.keys(queryAttrs).length?(identity.classes||[]).map(c=>'.'+esc(c)).join(''):'');
+ let candidates=queryAll(selector).filter(n=>matchesAttrs(n,attrs));
+ // A unique ID/test/entity identifier survives label and layout edits. Shared
+ // actions require the recorded ancestor context; order is never identity.
+ const anchored=Object.keys(attrs).some(k=>k!=='data-action'&&k!=='name');
+ if(!anchored||candidates.length!==1)candidates=candidates.filter(n=>matchesContext(n,identity.ancestors));
+ if(!Object.keys(attrs).length)candidates=candidates.filter(n=>Object.keys(identity.hints||{}).length?matchesHints(n,identity.hints):textOf(n)===a.snap.text);
+ const n=candidates.length===1?candidates[0]:null;
+ a.el=n;a.vis=n?(visible(n)?'ok':'hidden'):candidates.length>1?'ambiguous':'missing';
 }
 function updateUI(){
  $('reload').disabled=!state.source||busy;$('selectMode').disabled=!loaded||busy;$('reset').disabled=!state.annotations.length;
@@ -310,7 +346,7 @@ function activate(id,focus=false,jump=false){
  activeId=id;const a=state.annotations.find(x=>x.id===id);if(!a)return;
  for(const row of $('list').querySelectorAll('.annotation'))row.classList.toggle('active',Number(row.dataset.id)===id);
  const row=$('list').querySelector('[data-id="'+id+'"]');row?.scrollIntoView({block:'nearest'});if(focus)row?.querySelector('textarea')?.focus();
- if(jump){resolveAnn(a);if(a.vis==='ok'){a.el.scrollIntoView({block:'center',inline:'nearest'});const m=markers.get(id);if(m){m.classList.remove('flash');void m.offsetWidth;m.classList.add('flash');}}else toast(a.vis==='hidden'?'この要素は現在非表示です。':'この要素は現在のページに見つかりません。');}
+ if(jump){resolveAnn(a);if(a.vis==='ok'){a.el.scrollIntoView({block:'center',inline:'nearest'});const m=markers.get(id);if(m){m.classList.remove('flash');void m.offsetWidth;m.classList.add('flash');}}else toast(a.vis==='hidden'?'この要素は現在非表示です。':a.vis==='ambiguous'?'同じ候補が複数あり、対象を特定できません。記録時の情報を保持しています。':'この要素は現在のページに見つかりません。');}
 }
 function createAnn(n){
  const existing=state.annotations.find(a=>a.el===n);if(existing){activate(existing.id,true);return;}
@@ -326,7 +362,7 @@ function removeAnn(id){
  if(activeId===id)activeId=null;renderList();persist();
  toast('#'+id+'を削除しました。',{label:'元に戻す',run:()=>{if(!undo||undo.source!==state.source||undo.htmlPath!==state.htmlPath)return;state.annotations.splice(Math.min(undo.index,state.annotations.length),0,undo.ann);undo=null;clearTimeout(undoTimer);renderList();persist();}});
 }
-function statusText(a){return a.vis==='hidden'?'非表示':a.vis==='missing'?'要素なし':a.vis==='pending'?'対象の読込待ち':'';}
+function statusText(a){return a.vis==='hidden'?'非表示':a.vis==='ambiguous'?'候補が複数 · 記録時の情報を保持':a.vis==='missing'?'要素なし':a.vis==='pending'?'対象の読込待ち':'';}
 function renderList(){
  const list=$('list');list.replaceChildren();
  if(!state.annotations.length){const empty=el('div','list-empty');empty.append(el('strong','','まだ、指摘はありません。'),document.createTextNode('Qで選択モードにして、気になる要素をクリックしてください。'));list.append(empty);}
@@ -356,7 +392,7 @@ function draw(){
  try{
   loopCount++;const ids=new Set(state.annotations.map(a=>a.id));for(const [id,m] of markers)if(!ids.has(id)){m.remove();markers.delete(id);}
   for(const a of state.annotations){
-   if(loopCount%15===0||!a.el?.isConnected)resolveAnn(a);
+   if(loopCount%15===0||(a.el&&!a.el.isConnected))resolveAnn(a);
    let m=markers.get(a.id);if(!m){m=el('div','marker');const b=el('button','badge',String(a.id));b.type='button';b.setAttribute('aria-label','#'+a.id+'の指摘を開く');b.onclick=e=>{e.stopPropagation();activate(a.id,true);};m.append(b);overlay.append(m);markers.set(a.id,m);}
    const ok=loaded&&a.el&&visible(a.el);m.hidden=!ok;if(ok){position(m,place(a.el));m.classList.toggle('active',a.id===activeId);}
    if(loopCount%15===0){const label=$('list').querySelector('[data-id="'+a.id+'"] .ann-state');if(label){label.textContent=statusText(a);label.hidden=!label.textContent;}}
@@ -369,14 +405,16 @@ function buildExport(){
  const anns=state.annotations.filter(a=>a.comment.trim()),tick=String.fromCharCode(96),inline=t=>tick+String(t).replaceAll(tick,'ˋ').replace(/[\r\n]/g,' ')+tick;
  const lines=['# UI修正指示','','- 対象: '+state.htmlPath+'（フォルダ: '+(state.source?.name||'未読込')+'）','- 指摘: '+anns.length+'件（'+anns.map(a=>'#'+a.id).join(', ')+'）。欠番は削除済みの指摘','- 確認時の表示領域: '+frame.clientWidth+'×'+frame.clientHeight+'px','','## 対応ルール',
  '1. 指摘は番号ごとに独立している。1件ずつ対応する。',
- '2. 対象要素は「セレクタ」で特定する。セレクタはJS実行後のDOMから取得している。一致しない場合は「ソース位置」「HTML抜粋」「祖先」で照合する。',
+ '2. 見出し・セレクタ・HTML抜粋・祖先は記録時の対象情報。「照合属性」も使い同じ要素か確認する。セレクタはJS実行後のDOMから取得しており、順序の変化や画面切替で別要素に一致する場合がある。動的要素は元のHTMLになくJSで生成される場合もある。セレクタだけで決めず、属性・文言・祖先を照合する。',
  '3. 要素を特定できない指摘は推測で修正しない。番号と理由を報告する。',
  '4. 指摘と無関係な箇所は変更しない。',
  '5. 完了後、番号ごとに「対応内容」と「変更したファイル」を1行で報告する。'];
  for(const a of anns){
-  resolveAnn(a);const s=a.el?describe(a.el):a.snap,runs=s.html.match(/\x60+/g)||[],fence=tick.repeat(Math.max(3,...runs.map(r=>r.length+1)));
+  resolveAnn(a);const s=a.snap,current=a.el?describe(a.el):null,runs=s.html.match(/\x60+/g)||[],fence=tick.repeat(Math.max(3,...runs.map(r=>r.length+1)));
   lines.push('','---','','## #'+a.id+' '+inline(s.label)+(s.text?'「'+s.text.slice(0,60)+'」':''),'',...a.comment.split('\n').map(l=>'> '+l),'','- セレクタ: '+inline(s.selector),'- ソース位置: '+(s.line?state.htmlPath+' '+s.line+'行目付近（推定）':'HTMLソースに記述なし（JSで生成された要素の可能性）'),'- 祖先: '+inline(s.crumb));
-  if(a.vis==='hidden')lines.push('- 状態: 出力時は非表示');if(a.vis==='missing'||a.vis==='pending')lines.push('- 状態: 出力時に要素が見つからない');
+  const identity=snapshotIdentity(s),attrs=Object.keys(identity.attrs).length?identity.attrs:identity.hints||{};if(Object.keys(attrs).length)lines.push('- 照合属性（記録時）: '+inline(JSON.stringify(attrs)));
+  if(current){lines.push('- 確認時セレクタ（同一要素と照合済み）: '+inline(current.selector));if(current.text!==s.text)lines.push('- 確認時の文字: '+inline(current.text)+'（上記の見出し・HTML抜粋は記録時のもの）');}
+  if(a.vis==='hidden')lines.push('- 状態: 出力時は非表示');if(a.vis==='missing'||a.vis==='pending')lines.push('- 状態: 出力時に要素が見つからない（記録時の情報を保持。別要素への置換禁止）');if(a.vis==='ambiguous')lines.push('- 状態: 候補が複数あり特定できない（記録時の情報を保持。推測で修正しない）');
   lines.push('- HTML抜粋:',fence+'html',s.html,fence);
  }return lines.join('\n')+'\n';
 }
