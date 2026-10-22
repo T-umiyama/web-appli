@@ -1,0 +1,120 @@
+// Local synthetic-fixture regression. No user files or external services.
+'use strict';
+const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const fs = require('node:fs');
+const path = require('node:path');
+const assert = require('node:assert/strict');
+const { spawnSync } = require('node:child_process');
+const { inspectGif } = require('../helpers/gif-inspect.cjs');
+const output = path.resolve('test-results/png-to-gif/browser');
+const fixtureRoot = path.resolve('test-results/png-to-gif/fixtures');
+const fixture = name => path.join(fixtureRoot,name);
+fs.mkdirSync(output,{recursive:true});
+const generator = path.resolve(__dirname, '../helpers/make-gif-fixtures.cjs');
+const setup = spawnSync(process.execPath,[generator],{encoding:'utf8'});
+if(setup.status!==0)throw Error(setup.stderr||setup.stdout);
+const checks=[],errors=[],requests=[],dialogs=[],observations={};
+const pass=message=>{checks.push(message);console.log('PASS '+message);};
+const pixel=(frame,x,y)=>{const i=frame.indices[y*frame.width+x]*3;return [...frame.palette.subarray(i,i+3)];};
+const near=(actual,expected,tolerance=2)=>assert.ok(actual.every((v,i)=>Math.abs(v-expected[i])<=tolerance),JSON.stringify(actual)+' expected '+JSON.stringify(expected));
+function expectEstimateMatches(text,bytes){
+  assert.match(text,/全フレーム計算/);const match=text.match(/([\d.]+)\s*(MiB|KiB|B)/);assert.ok(match,'capacity with binary unit');
+  const unit={B:1,KiB:1024,MiB:1048576}[match[2]],digits=(match[1].split('.')[1]||'').length,tolerance=unit/(2*10**digits)+.01;
+  assert.ok(Math.abs(Number(match[1])*unit-bytes)<=tolerance,'pre-creation estimate '+text+' vs actual '+bytes+' B');
+}
+(async()=>{
+  const browser=await chromium.launch({executablePath:process.env.CHROME_EXECUTABLE||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true});
+  const page=await browser.newPage({viewport:{width:1440,height:1080},deviceScaleFactor:1,acceptDownloads:true});
+  page.setDefaultTimeout(12000);
+  page.on('pageerror',e=>errors.push(String(e)));
+  page.on('request',r=>{if(!/^(file|blob|data):/.test(r.url()))requests.push(r.url());});
+  page.on('dialog',async d=>{dialogs.push(d.message());await d.dismiss();});
+  const ready=()=>page.waitForFunction(()=>!document.querySelector('#convert').disabled);
+  const estimate=async()=>{await page.waitForFunction(()=>/\d/.test(document.querySelector('#estimate').textContent)&&!/見積もり中|計算中/.test(document.querySelector('#estimate').textContent));return page.locator('#estimate').textContent();};
+  const fill=async(id,value)=>{await page.locator('#'+id).fill(String(value));await page.locator('#'+id).press('Tab');};
+  const resultState=()=>page.evaluate(()=>({src:document.querySelector('#resultImage').getAttribute('src'),href:document.querySelector('#download').getAttribute('href'),info:document.querySelector('#resultInfo').textContent}));
+  const convert=async(name)=>{
+    await ready();const previous=(await resultState()).src;await page.locator('#convert').click();
+    await page.waitForFunction(old=>{const img=document.querySelector('#resultImage');return !!img.getAttribute('src')&&img.getAttribute('src')!==old&&!document.querySelector('#result').hidden;},previous,{timeout:30000});
+    await ready();const event=page.waitForEvent('download');await page.locator('#download').click();const download=await event;const filename=path.join(output,name+'.gif');await download.saveAs(filename);
+    const bytes=fs.readFileSync(filename),gif=inspectGif(bytes);observations[name]={bytes:bytes.length,width:gif.width,height:gif.height,frames:gif.frames.length,delays:gif.frames.map(f=>f.delay),loop:gif.loop,result:await resultState()};return gif;
+  };
+  const expectRetained=async(before)=>assert.deepEqual(await resultState(),before);
+  try{
+    await page.goto('file://'+path.resolve('index.html'));
+    await page.locator('a[href="apps/png-to-gif/index.html"]').click();
+    await page.locator('#pngTab').waitFor();assert.match(page.url(),/apps\/png-to-gif\/index.html$/);
+    await page.locator('#pngTab').focus();await page.keyboard.press('ArrowRight');assert.equal(await page.locator('#videoTab').getAttribute('aria-selected'),'true');
+    await page.keyboard.press('ArrowLeft');assert.equal(await page.locator('#pngTab').getAttribute('aria-selected'),'true');
+    pass('file://ホームから遷移し、入力タブを左右キーで切替');
+    for(const width of[1440,1280]){await page.setViewportSize({width,height:1080});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'no horizontal page overflow at '+width);}
+    await page.setViewportSize({width:1440,height:1080});
+    await page.locator('#pngFiles').setInputFiles([fixture('red.png'),fixture('green.png'),fixture('blue.png')]);await ready();
+    assert.equal(await page.locator('#frames .frame').count(),3);observations.pngEstimate=await estimate();
+    await fill('outputWidth',60);await fill('frameDelay',240);await page.locator('#loop').uncheck();
+    await ready();observations.pngHalfEstimate=await estimate();assert.notEqual(observations.pngEstimate,observations.pngHalfEstimate);
+    await page.locator('#playPreview').click();await page.waitForFunction(()=>/^3 \/ 3/.test(document.querySelector('#previewInfo').textContent)&&document.querySelector('#playPreview').textContent==='再生');
+    near(await page.locator('#preview').evaluate(c=>[...c.getContext('2d').getImageData(30,20,1,1).data].slice(0,3)),[0,0,255]);
+    pass('PNGプレビューが指定間隔で進み、loopオフなら最終画像で停止');
+    const png=await convert('png-original-order');assert.equal(png.width,60);assert.equal(png.height,40);assert.equal(png.frames.length,3);assert.equal(png.loop,null);
+    expectEstimateMatches(observations.pngHalfEstimate,observations['png-original-order'].bytes);
+    for(const [i,c]of[[255,0,0],[0,255,0],[0,0,255]].entries()){near(pixel(png.frames[i],30,20),c);assert.equal(png.frames[i].delay,24);}
+    pass('PNG3枚・出力幅・速度・loopオフ・容量見込み変化を出力GIFで確認。作成前容量は実ファイルと表示丸め内一致');
+    const last=page.locator('#frames .frame').last();await last.getByRole('button',{name:/前へ/}).focus();await page.keyboard.press('Enter');
+    await page.locator('#frames .frame').nth(1).getByRole('button',{name:/前へ/}).focus();await page.keyboard.press('Enter');
+    await ready();const reordered=await convert('png-keyboard-order');
+    for(const [i,c]of[[0,0,255],[255,0,0],[0,255,0]].entries())near(pixel(reordered.frames[i],30,20),c);
+    pass('フレームの「前へ」をキーボード操作し、GIFの色順も変更');
+    await page.locator('#frames .frame').nth(1).dragTo(page.locator('#frames .frame').last());await ready();
+    const dragged=await convert('png-drag-order');for(const[i,c]of[[0,0,255],[0,255,0],[255,0,0]].entries())near(pixel(dragged.frames[i],30,20),c);
+    pass('フレームのドラッグ並替も実GIFの色順に反映');
+    const existing=await resultState(),beforeCount=await page.locator('#frameCount').textContent();
+    await page.locator('#pngFiles').setInputFiles([fixture('green.png'),fixture('broken.png')]);
+    await page.waitForFunction(()=>/失敗|できません|読み込め|不正|無効|ではありません/.test(document.querySelector('#status').textContent));
+    assert.equal(await page.locator('#frameCount').textContent(),beforeCount);await expectRetained(existing);
+    await page.locator('#pngFiles').setInputFiles([]);await expectRetained(existing);
+    pass('有効PNGと破損PNGの一括読込失敗・選択取消でも既存入力と成功GIF保持');
+    await page.locator('#pngFiles').setInputFiles(fixture('<img onerror=alert(1)>.png'));await ready();
+    assert.equal(await page.locator('#frames .frame').count(),4);assert.ok(await page.locator('#frames').getByText('<img onerror=alert(1)>.png',{exact:true}).count());assert.deepEqual(dialogs,[]);
+    await page.locator('#frames .frame').last().getByRole('button',{name:/削除/}).click();assert.equal(await page.locator('#frames .frame').count(),3);
+    pass('利用者ファイル名を文字列表示し、フレーム削除が動作');
+    await page.locator('#clearFrames').click();await page.locator('#pngFiles').setInputFiles([fixture('red.png'),fixture('transparent.png')]);await ready();
+    await fill('outputWidth',120);await page.locator('#background').fill('#ff00ff');await page.locator('#background').dispatchEvent('input');await ready();
+    const alpha=await convert('png-background-fit');assert.equal(alpha.width,120);assert.equal(alpha.height,80);
+    near(pixel(alpha.frames[1],10,40),[255,0,255]);near(pixel(alpha.frames[1],40,40),[255,0,255]);near(pixel(alpha.frames[1],75,40),[0,0,255]);
+    pass('異なるPNG寸法を最初の比率に収め、透明部分と余白へ選択背景色を合成');
+    await page.screenshot({path:path.join(output,'png-desktop.png'),fullPage:true});
+    await page.locator('#videoTab').click();await page.locator('#videoFile').setInputFiles(fixture('quadrants-timeline.mp4'));
+    await page.waitForFunction(()=>!document.querySelector('#videoSettings').disabled&&Number(document.querySelector('#trimEnd').value)>=4);await ready();
+    assert.match(await page.locator('#videoInfo').textContent(),/120/);observations.videoInitialEstimate=await estimate();
+    await fill('trimStart',1);await fill('trimEnd',3);await fill('cropX',0);await fill('cropY',0);await fill('cropWidth',60);await fill('cropHeight',40);await fill('outputWidth',60);await fill('videoFps',2);await page.locator('#loop').check();
+    await ready();observations.videoTrimEstimate=await estimate();assert.notEqual(observations.videoInitialEstimate,observations.videoTrimEstimate);
+    const trimmed=await convert('mp4-trim-top-left');assert.equal(trimmed.width,60);assert.equal(trimmed.height,40);assert.equal(trimmed.frames.length,4);assert.equal(trimmed.loop,0);
+    for(const [i,c]of[[0,255,0],[0,255,0],[0,0,255],[0,0,255]].entries()){near(pixel(trimmed.frames[i],30,20),c,2);assert.equal(trimmed.frames[i].delay,50);}
+    pass('MP4の開始1〜終了3秒・左上60×40 crop・2FPSを出力4フレームの色で確認');
+    const retained=await resultState(),source=await page.locator('#sourceVideo').getAttribute('src');
+    await page.locator('#videoFile').setInputFiles(fixture('broken.mp4'));await page.waitForFunction(()=>/失敗|できません|読み込め|不正|無効|ではありません/.test(document.querySelector('#status').textContent));
+    assert.equal(await page.locator('#sourceVideo').getAttribute('src'),source);assert.equal(await page.locator('#trimStart').inputValue(),'1');await expectRetained(retained);
+    await page.locator('#videoFile').setInputFiles([]);assert.equal(await page.locator('#sourceVideo').getAttribute('src'),source);await expectRetained(retained);
+    pass('破損MP4・選択取消でも既存動画・切り取り設定・成功GIF保持');
+    await fill('trimStart',3.5);await fill('trimEnd',2);await page.waitForFunction(()=>document.querySelector('#convert').disabled);await expectRetained(retained);
+    await fill('trimStart',0);await fill('trimEnd',1);await fill('cropWidth',60);await fill('cropHeight',40);await fill('cropX',60);await fill('cropY',40);await fill('outputWidth',30);await fill('videoFps',2);await ready();
+    observations.spatialEstimate=await estimate();
+    const spatial=await convert('mp4-crop-bottom-right');assert.equal(spatial.width,30);assert.equal(spatial.height,20);assert.equal(spatial.frames.length,2);
+    expectEstimateMatches(observations.spatialEstimate,observations['mp4-crop-bottom-right'].bytes);
+    for(const frame of spatial.frames)for(const [x,y]of[[3,3],[15,10],[26,16]])near(pixel(frame,x,y),[0,255,255]);
+    pass('無効な時間範囲を抑止し、右下crop・出力幅縮小をGIF寸法と複数pixelで確認。2frameの作成前容量も実サイズと一致');
+    await fill('trimEnd',2);await fill('videoFps',1);await ready();const fps1=await estimate();await fill('videoFps',2);await ready();const fps2=await estimate();assert.notEqual(fps1,fps2);observations.fpsEstimates={fps1,fps2};
+    pass('FPS変更で作成前の容量見込みが更新');
+    await fill('trimEnd',4);await fill('videoFps',30);await fill('outputWidth',120);await ready();const beforeCancel=await resultState();
+    await page.locator('#convert').click();await page.locator('#cancel').click();await ready();await expectRetained(beforeCancel);assert.equal(await page.locator('#sourceVideo').getAttribute('src'),source);
+    observations.afterCancelEstimate = await estimate();
+    pass('MP4→GIF作成の途中取消で動画と最後の成功GIFを保持し、容量見積もりが再開');
+    await page.screenshot({path:path.join(output,'mp4-desktop.png'),fullPage:true});
+    await page.getByRole('link',{name:/アプリホーム/}).click();assert.equal(page.url(),'file://'+path.resolve('index.html'));
+    await page.locator('a[href="apps/png-to-gif/index.html"]').click();assert.equal(await page.locator('#frames .frame').count(),0);assert.equal(await page.locator('#result').isHidden(),true);
+    pass('ホームへ戻り再訪でき、入力と結果は自動保存しない');
+    assert.deepEqual(errors,[]);assert.deepEqual(requests,[]);assert.deepEqual(dialogs,[]);pass('ブラウザ例外・外部通信・ファイル名由来script実行なし');
+  }catch(error){observations.failure=String(error.stack||error);await page.screenshot({path:path.join(output,'failure.png'),fullPage:true});throw error;}
+  finally{fs.writeFileSync(path.join(output,'results.json'),JSON.stringify({browser:await browser.version(),checks,errors,requests,dialogs,observations,limitations:['OSネイティブ選択/取消とFinderからのドラッグは対象外。合成fixtureとChrome file://のみ。']},null,2));await browser.close();}
+})().catch(error=>{console.error(error);process.exitCode=1;});

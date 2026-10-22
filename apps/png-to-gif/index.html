@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PNG・MP4からGIFを作成 | アプリホーム</title>
+  <link rel="stylesheet" href="assets/style.css">
+  <script src="gif-encoder.js" defer></script>
+  <script src="media-tools.js" defer></script>
+  <script src="assets/app.js" defer></script>
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <a class="home-link" href="../../index.html">← アプリホーム</a>
+      <p class="eyebrow">LOCAL GIF STUDIO</p>
+      <h1>PNG・MP4からGIFを作成</h1>
+      <p>画像を並べる。動画を切り取る。容量を見て、GIFにする。</p>
+      <p class="privacy">処理はこのPCのブラウザ内で完結します。ファイルの送信・自動保存はありません。</p>
+    </header>
+    <div class="tabs" role="tablist" aria-label="入力形式">
+      <button id="pngTab" role="tab" aria-selected="true" aria-controls="pngPanel" type="button">PNG画像を並べる</button>
+      <button id="videoTab" role="tab" aria-selected="false" aria-controls="videoPanel" tabindex="-1" type="button">MP4動画を切り取る</button>
+    </div>
+    <div class="workspace">
+      <div class="source-column">
+        <section id="pngPanel" class="card" role="tabpanel" aria-labelledby="pngTab">
+          <h2>1. PNG画像を追加</h2>
+          <button id="pngDrop" class="drop" type="button"><strong>PNGを選択 または ここへドロップ</strong><span>複数選択可 · 1枚25 MiB / 合計150 MiBまで</span></button>
+          <input id="pngFiles" type="file" accept="image/png,.png" multiple hidden>
+          <div class="section-row"><p id="frameCount">0 / 240 枚</p><button id="clearFrames" type="button" disabled>すべて削除</button></div>
+          <p class="hint">ドラッグ、または各画像の「前へ」「後へ」で並び替えます。サイズが異なる画像は最初の画像の比率に余白を付けて収めます。</p>
+          <div id="frames" class="frames"></div>
+          <p id="emptyFrames" class="empty">画像を追加するとここに表示されます。</p>
+        </section>
+        <section id="videoPanel" class="card" role="tabpanel" aria-labelledby="videoTab" hidden>
+          <h2>1. MP4動画を追加・切り取り</h2>
+          <button id="videoDrop" class="drop" type="button"><strong>MP4を選択 または ここへドロップ</strong><span>1ファイル200 MiBまで · Chromeが再生できるMP4</span></button>
+          <input id="videoFile" type="file" accept="video/mp4,.mp4" hidden>
+          <p id="videoInfo" class="hint">動画はまだ読み込まれていません。</p>
+          <div id="videoStage" class="video-stage" hidden><video id="sourceVideo" controls playsinline preload="metadata"></video><div id="cropOverlay" class="crop-overlay" aria-hidden="true"><span>切り取り範囲</span></div></div>
+          <fieldset id="videoSettings" disabled>
+            <legend>時間の切り取り</legend>
+            <div class="fields two"><label for="trimStart">開始（秒）<input id="trimStart" type="number" min="0" step="0.01" value="0"></label><label for="trimEnd">終了（秒）<input id="trimEnd" type="number" min="0" step="0.01" value="1"></label></div>
+            <div class="button-row"><button id="setStart" type="button">現在位置を開始に</button><button id="setEnd" type="button">現在位置を終了に</button><button id="previewTrim" type="button">指定区間を再生</button></div>
+            <p class="hint">終了位置の直前まで、指定FPSで静止画を取り出します。音声は含まれません。</p>
+            <div class="section-row"><h3>画面の切り取り（元動画のpx）</h3><button id="resetCrop" type="button">全画面に戻す</button></div>
+            <div class="fields four"><label for="cropX">X<input id="cropX" type="number" min="0" step="1" value="0"></label><label for="cropY">Y<input id="cropY" type="number" min="0" step="1" value="0"></label><label for="cropWidth">幅<input id="cropWidth" type="number" min="1" step="1" value="1"></label><label for="cropHeight">高さ<input id="cropHeight" type="number" min="1" step="1" value="1"></label></div>
+            <label for="videoFps">FPS（1秒あたりのコマ数）<input id="videoFps" type="number" min="1" max="30" step="1" value="10"></label>
+          </fieldset>
+        </section>
+      </div>
+      <div class="output-column">
+        <section class="card preview-card">
+          <div class="section-row"><h2 id="previewTitle">入力プレビュー</h2><button id="playPreview" type="button" disabled>再生</button></div>
+          <div class="preview-stage"><canvas id="preview" width="640" height="360" aria-label="GIFにする画像のプレビュー"></canvas><p id="previewEmpty">PNG画像またはMP4動画を追加してください。</p></div>
+          <p id="previewInfo" class="hint">背景色を合成して、256色に変換します。</p>
+        </section>
+        <section class="card settings-card">
+          <h2>2. 出力設定と容量見込み</h2>
+          <fieldset id="outputSettings">
+            <div class="fields two"><label for="outputWidth">出力幅（px）<input id="outputWidth" type="number" min="1" max="1280" step="1" value="640"></label><label for="background">背景色<input id="background" type="color" value="#ffffff"></label></div>
+            <p class="hint">縦横比を保持。縦横は各1280 pxまで。PNGの透明部分と余白は背景色で塗ります。GIFは固定256色のため、色やグラデーションが変わります。</p>
+            <label id="delayLabel" for="frameDelay">PNGの切り替え間隔（ms）<input id="frameDelay" type="number" min="50" max="3000" step="10" value="500"></label>
+            <label class="checkbox"><input id="loop" type="checkbox" checked>繰り返し再生する</label>
+          </fieldset>
+          <p id="planInfo" class="plan-info">画像または動画を追加してください。</p>
+          <div class="estimate-box"><p class="eyebrow">作成前のファイル容量</p><output id="estimate" aria-live="polite">—</output><p id="estimateNote" class="hint">先頭・中央・末尾の最大3フレームを実際に圧縮して見積もります。GIF作成時と同じ256色設定を使います。</p></div>
+          <p class="hint limits">最大240フレーム・合計6000万画素。PNGは元画像1枚3200万画素・合計6400万画素まで。容量見込みは目安で、動画の内容によって範囲外になる場合もあります。</p>
+          <div class="button-row"><button id="refreshEstimate" type="button" disabled>容量を再見積もり</button><button id="convert" class="primary" type="button" disabled>GIFを作成</button><button id="cancel" class="danger" type="button" hidden>処理を取り消す</button></div>
+          <progress id="progress" max="100" value="0" hidden aria-label="処理の進み具合"></progress>
+          <p id="status" class="status" role="status" aria-live="polite">ファイルを選択してください。</p>
+        </section>
+      </div>
+    </div>
+    <section id="result" class="card result-card" hidden>
+      <div class="section-row"><div><h2>3. 作成したGIF</h2><p id="resultInfo"></p></div><a id="download" class="button primary" download="animation.gif">GIFを保存</a></div>
+      <p id="resultState" class="hint"></p>
+      <img id="resultImage" alt="作成したGIFアニメーション">
+      <p class="hint">保存ボタンから通常のダウンロード先へ保存します。設定変更・読込失敗・取消では、最後に成功したGIFを保持します。ページを閉じると入力と作成結果は消えます。</p>
+    </section>
+  </main>
+</body>
+</html>
