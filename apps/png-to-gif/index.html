@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="assets/style.css">
   <script src="gif-encoder.js" defer></script>
   <script src="media-tools.js" defer></script>
+  <script src="assets/video-editor.js" defer></script>
   <script src="assets/app.js" defer></script>
 </head>
 <body>
@@ -38,11 +39,18 @@
           <button id="videoDrop" class="drop" type="button"><strong>MP4を選択 または ここへドロップ</strong><span>1ファイル200 MiBまで · Chromeが再生できるMP4</span></button>
           <input id="videoFile" type="file" accept="video/mp4,.mp4" hidden>
           <p id="videoInfo" class="hint">動画はまだ読み込まれていません。</p>
-          <div id="videoStage" class="video-stage" hidden><video id="sourceVideo" controls playsinline preload="metadata"></video><div id="cropOverlay" class="crop-overlay" aria-hidden="true"><span>切り取り範囲</span></div></div>
+          <div id="videoEditor" class="video-editor" hidden>
+            <div class="editor-toolbar"><div class="button-row" role="group" aria-label="画面切り取りの操作"><button id="cropDraw" type="button" aria-pressed="true">範囲を描く</button><button id="cropMove" type="button" aria-pressed="false">移動・調整</button></div><span id="cropReadout" class="editor-readout"></span></div>
+            <div id="videoStage" class="video-stage"><div id="videoViewport" class="video-viewport" aria-label="動画の画面切り取り編集領域"><video id="sourceVideo" playsinline preload="metadata"></video><div id="cropOverlay" class="crop-overlay" tabindex="0" role="group" aria-label="切り取り範囲。矢印で移動、Shiftと矢印で10ピクセル移動"><span class="crop-caption">切り取り範囲</span><button id="cropHandleNW" class="crop-handle nw" data-crop-handle="nw" type="button" aria-label="切り取り範囲の左上を調整"></button><button id="cropHandleN" class="crop-handle n" data-crop-handle="n" type="button" aria-label="切り取り範囲の上辺を調整"></button><button id="cropHandleNE" class="crop-handle ne" data-crop-handle="ne" type="button" aria-label="切り取り範囲の右上を調整"></button><button id="cropHandleE" class="crop-handle e" data-crop-handle="e" type="button" aria-label="切り取り範囲の右辺を調整"></button><button id="cropHandleSE" class="crop-handle se" data-crop-handle="se" type="button" aria-label="切り取り範囲の右下を調整"></button><button id="cropHandleS" class="crop-handle s" data-crop-handle="s" type="button" aria-label="切り取り範囲の下辺を調整"></button><button id="cropHandleSW" class="crop-handle sw" data-crop-handle="sw" type="button" aria-label="切り取り範囲の左下を調整"></button><button id="cropHandleW" class="crop-handle w" data-crop-handle="w" type="button" aria-label="切り取り範囲の左辺を調整"></button></div></div></div>
+            <p id="cropHelp" class="hint">映像上をドラッグして範囲を描きます。枠内で移動、辺・角のハンドルでサイズを調整。Escでドラッグ前へ戻ります。矢印キーは1 px、Shift併用で10 px。</p>
+            <div class="editor-transport"><button id="toggleVideoPlayback" type="button">▶ 動画を再生</button><button id="previewTrim" type="button">▶ 選択範囲を再生</button><output id="currentTime">0.00 / 0.00 秒</output></div>
+            <div class="timeline-shell"><div id="timelineTrack" class="timeline-track" aria-label="動画タイムライン。クリックまたはドラッグで再生位置を移動"><div id="timelineThumbnails" class="timeline-thumbnails" aria-hidden="true"></div><div id="timelineDimBefore" class="timeline-dim before"></div><div id="timelineSelection" class="timeline-selection"></div><div id="timelineDimAfter" class="timeline-dim after"></div><button id="trimStartHandle" class="trim-handle start" type="button" role="slider" aria-label="選択範囲の開始" aria-valuemin="0" aria-valuemax="1" aria-valuenow="0"><span>IN</span></button><button id="trimEndHandle" class="trim-handle end" type="button" role="slider" aria-label="選択範囲の終了" aria-valuemin="0" aria-valuemax="1" aria-valuenow="1"><span>OUT</span></button><button id="playhead" class="playhead" type="button" role="slider" aria-label="再生位置" aria-valuemin="0" aria-valuemax="1" aria-valuenow="0"><span></span></button></div><div id="timelineTicks" class="timeline-ticks" aria-hidden="true"></div></div>
+            <p id="rangeDuration" class="range-duration"></p><p class="hint">タイムラインのクリックで場面を確認。IN / OUTをドラッグして開始・終了を指定します。各ハンドルの矢印キーは0.01秒、Shift併用で1秒。Home / Endで端へ移動します。</p>
+          </div>
           <fieldset id="videoSettings" disabled>
             <legend>時間の切り取り</legend>
             <div class="fields two"><label for="trimStart">開始（秒）<input id="trimStart" type="number" min="0" step="0.01" value="0"></label><label for="trimEnd">終了（秒）<input id="trimEnd" type="number" min="0" step="0.01" value="1"></label></div>
-            <div class="button-row"><button id="setStart" type="button">現在位置を開始に</button><button id="setEnd" type="button">現在位置を終了に</button><button id="previewTrim" type="button">指定区間を再生</button></div>
+            <div class="button-row"><button id="setStart" type="button">現在位置を開始に</button><button id="setEnd" type="button">現在位置を終了に</button></div>
             <p class="hint">終了位置の直前まで、指定FPSで静止画を取り出します。音声は含まれません。</p>
             <div class="section-row"><h3>画面の切り取り（元動画のpx）</h3><button id="resetCrop" type="button">全画面に戻す</button></div>
             <div class="fields four"><label for="cropX">X<input id="cropX" type="number" min="0" step="1" value="0"></label><label for="cropY">Y<input id="cropY" type="number" min="0" step="1" value="0"></label><label for="cropWidth">幅<input id="cropWidth" type="number" min="1" step="1" value="1"></label><label for="cropHeight">高さ<input id="cropHeight" type="number" min="1" step="1" value="1"></label></div>

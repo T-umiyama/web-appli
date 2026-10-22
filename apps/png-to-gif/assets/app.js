@@ -4,8 +4,9 @@
   const ids = ['pngTab','videoTab','pngPanel','videoPanel','pngDrop','pngFiles','videoDrop','videoFile','frames','emptyFrames','frameCount','clearFrames','sourceVideo','videoStage','videoInfo','cropOverlay','videoSettings','trimStart','trimEnd','cropX','cropY','cropWidth','cropHeight','videoFps','resetCrop','setStart','setEnd','previewTrim','preview','previewEmpty','previewInfo','previewTitle','playPreview','outputSettings','outputWidth','background','delayLabel','frameDelay','loop','planInfo','estimate','estimateNote','refreshEstimate','convert','cancel','progress','status','result','resultInfo','resultState','resultImage','download'];
   const el = Object.fromEntries(ids.map(id => [id, $(id)]));
   const { LIMITS, createImagePlan, createVideoPlan, sampleIndices } = MediaGifTools;
-  const state = { mode: 'png', frames: [], video: null, index: 0, playing: false, timer: null, drag: null, task: null, estimateAbort: null, estimateTimer: null, revision: 0, result: null, trimPlaying: false };
+  const state = { mode: 'png', frames: [], video: null, index: 0, playing: false, timer: null, drag: null, task: null, estimateAbort: null, estimateTimer: null, revision: 0, result: null };
   const ctx = el.preview.getContext('2d', { willReadFrequently: true });
+  const videoEditor = VideoGifEditor.create({ video: el.sourceVideo, getSource: () => state.video, isEnabled: () => state.mode === 'video' && !state.task, onChange: () => { stopPreview(); changed(); }, onFrame: () => { if (state.mode === 'video') drawPreview(); }, onStatus: status });
   function sizeText(bytes) { return bytes < 1024 ? bytes + ' B' : bytes < 1048576 ? (bytes / 1024).toFixed(1) + ' KiB' : (bytes / 1048576).toFixed(2) + ' MiB'; }
   function status(text, error = false) { el.status.textContent = text; el.status.classList.toggle('error', error); }
   function abortError() { return new DOMException('取り消しました。', 'AbortError'); }
@@ -32,14 +33,15 @@
     el.refreshEstimate.disabled = busy || !plan;
     el.cancel.hidden = !busy;
     el.cancel.disabled = !busy || state.task.signal.aborted;
-    el.sourceVideo.controls = !busy;
+    el.sourceVideo.controls = false;
+    videoEditor.refresh();
     for (const button of el.frames.querySelectorAll('button')) button.disabled = busy || button.dataset.boundary === 'true';
     for (const card of el.frames.children) card.draggable = !busy;
   }
   function setTask(controller, text) {
     state.task = controller; stopPreview(); stopEstimate();
-    if (state.video) el.sourceVideo.pause();
-    state.trimPlaying = false; el.progress.hidden = false; el.progress.value = 0;
+    if (state.video) videoEditor.stopPlayback();
+    el.progress.hidden = false; el.progress.value = 0;
     status(text); updateControls();
   }
   function finishTask(controller) {
@@ -77,7 +79,12 @@
     context.drawImage(image, Math.round((width - w) / 2), Math.round((height - h) / 2), w, h);
   }
   function drawPreview() {
-    const plan = safePlan(), source = state.mode === 'png' ? state.frames[state.index] : state.video;
+    const outputPlan = safePlan(), source = state.mode === 'png' ? state.frames[state.index] : state.video;
+    let plan = outputPlan;
+    if (!plan && state.mode === 'video' && source) {
+      const crop = videoEditor.getCrop();
+      if (crop) { const factor = Math.min(1, 640 / crop.width, 640 / crop.height); plan = { width: Math.max(1, Math.round(crop.width * factor)), height: Math.max(1, Math.round(crop.height * factor)), crop }; }
+    }
     const ready = source && plan && (state.mode === 'png' || el.sourceVideo.readyState >= 2);
     el.preview.style.display = ready ? 'block' : 'none'; el.previewEmpty.hidden = Boolean(ready);
     el.playPreview.hidden = state.mode !== 'png';
@@ -94,7 +101,7 @@
     const indices = GifEncoder.index332(data.data);
     for (let i = 0; i < indices.length; i++) { const p = indices[i] * 3, d = i * 4; data.data[d] = palette[p]; data.data[d + 1] = palette[p + 1]; data.data[d + 2] = palette[p + 2]; data.data[d + 3] = 255; }
     ctx.putImageData(data, 0, 0);
-    el.previewInfo.textContent = state.mode === 'png' ? (state.index + 1) + ' / ' + plan.count + ' 枚 · ' + outputInfo(plan) : '現在位置 ' + el.sourceVideo.currentTime.toFixed(2) + '秒 · ' + outputInfo(plan);
+    el.previewInfo.textContent = state.mode === 'png' ? (state.index + 1) + ' / ' + plan.count + ' 枚 · ' + outputInfo(plan) : '現在位置 ' + el.sourceVideo.currentTime.toFixed(2) + '秒 · ' + (outputPlan ? outputInfo(outputPlan) : '切り取り ' + plan.crop.width + ' × ' + plan.crop.height + ' px（出力設定を確認してください）');
     Array.from(el.frames.children).forEach((card, i) => card.classList.toggle('active', i === state.index));
   }
   function stopPreview() { state.playing = false; clearTimeout(state.timer); el.playPreview.textContent = '再生'; }
@@ -245,14 +252,7 @@
       finishTask(controller); changed(false);
     } finally { if (candidate) releaseVideo(candidate); if (url) URL.revokeObjectURL(url); }
   }
-  function updateCropOverlay() {
-    const source = state.video, plan = state.mode === 'video' ? safePlan() : null;
-    el.cropOverlay.hidden = !source || !plan;
-    if (!source || !plan) return;
-    const w = el.videoStage.clientWidth, h = el.videoStage.clientHeight, factor = Math.min(w / source.width, h / source.height), crop = plan.crop;
-    const x = (w - source.width * factor) / 2, y = (h - source.height * factor) / 2;
-    Object.assign(el.cropOverlay.style, { left: x + crop.x * factor + 'px', top: y + crop.y * factor + 'px', width: crop.width * factor + 'px', height: crop.height * factor + 'px' });
-  }
+  function updateCropOverlay() { videoEditor.refresh(); }
   function snapshot() { return { mode: state.mode, plan: getPlan(), frames: state.frames.slice(), video: state.video, loop: el.loop.checked, background: el.background.value, revision: state.revision }; }
   function makeCanvas(plan) { const canvas = document.createElement('canvas'); canvas.width = plan.width; canvas.height = plan.height; return { canvas, context: canvas.getContext('2d', { willReadFrequently: true }) }; }
   async function framePixels(snap, index, work, video, signal) {
@@ -344,7 +344,7 @@
   }
   function switchMode(mode, focus = false) {
     if (state.task) return;
-    stopPreview(); el.sourceVideo.pause(); state.trimPlaying = false; state.mode = mode;
+    stopPreview(); videoEditor.stopPlayback(); state.mode = mode;
     for (const [key, value] of [['png', 'pngTab'], ['video', 'videoTab']]) { const active = mode === key; el[value].setAttribute('aria-selected', String(active)); el[value].tabIndex = active ? 0 : -1; }
     el.pngPanel.hidden = mode !== 'png'; el.videoPanel.hidden = mode !== 'video'; el.delayLabel.hidden = mode !== 'png';
     if (focus) el[mode === 'png' ? 'pngTab' : 'videoTab'].focus();
@@ -362,21 +362,7 @@
   for (const tab of [el.pngTab, el.videoTab]) tab.addEventListener('keydown', event => { if (['ArrowLeft','ArrowRight','Home','End'].includes(event.key)) { event.preventDefault(); switchMode(event.key === 'Home' ? 'png' : event.key === 'End' ? 'video' : state.mode === 'png' ? 'video' : 'png', true); } });
   el.clearFrames.addEventListener('click', () => { if (state.task) return; stopPreview(); for (const frame of state.frames) { URL.revokeObjectURL(frame.url); frame.image.src = ''; } state.frames.length = 0; state.index = 0; renderFrames(); changed(); status('PNG画像をすべて削除しました。作成済みのGIFは保持しています。'); });
   el.playPreview.addEventListener('click', () => { if (state.playing) stopPreview(); else { if (state.index === state.frames.length - 1) state.index = 0; state.playing = true; el.playPreview.textContent = '停止'; drawPreview(); playStep(); } });
-  for (const id of ['trimStart','trimEnd','cropX','cropY','cropWidth','cropHeight','videoFps','outputWidth','background','frameDelay','loop']) el[id].addEventListener('input', () => { stopPreview(); state.trimPlaying = false; changed(); });
-  el.resetCrop.addEventListener('click', () => { if (!state.video) return; el.cropX.value = 0; el.cropY.value = 0; el.cropWidth.value = state.video.width; el.cropHeight.value = state.video.height; changed(); });
-  el.setStart.addEventListener('click', () => { el.trimStart.value = el.sourceVideo.currentTime.toFixed(2); changed(); });
-  el.setEnd.addEventListener('click', () => { el.trimEnd.value = el.sourceVideo.currentTime.toFixed(2); changed(); });
-  el.previewTrim.addEventListener('click', async () => {
-    try {
-      const plan = getPlan(); state.trimPlaying = true; el.sourceVideo.currentTime = plan.start;
-      await el.sourceVideo.play(); status('指定区間を再生しています。');
-    } catch (error) { state.trimPlaying = false; status(error.message, true); }
-  });
-  el.sourceVideo.addEventListener('timeupdate', () => {
-    if (state.trimPlaying) { const end = Number(el.trimEnd.value); if (el.sourceVideo.currentTime >= end) { el.sourceVideo.pause(); state.trimPlaying = false; } }
-    if (state.mode === 'video') drawPreview();
-  });
-  for (const event of ['loadeddata','seeked','loadedmetadata']) el.sourceVideo.addEventListener(event, () => { if (state.mode === 'video') { drawPreview(); updateCropOverlay(); } });
+  for (const id of ['trimStart','trimEnd','cropX','cropY','cropWidth','cropHeight','videoFps','outputWidth','background','frameDelay','loop']) el[id].addEventListener('input', () => { stopPreview(); if (state.mode === 'video') videoEditor.stopPlayback(); changed(); });
   el.refreshEstimate.addEventListener('click', () => { stopEstimate(); el.estimate.textContent = '再計算中…'; estimate(); });
   el.convert.addEventListener('click', convert);
   el.cancel.addEventListener('click', () => { if (!state.task) return; state.task.abort(); el.cancel.disabled = true; status('処理を取り消しています…'); });
@@ -384,6 +370,6 @@
   // Keep file drops outside the drop zones from navigating away and losing work.
   window.addEventListener('dragover', event => { if (event.dataTransfer && event.dataTransfer.types.includes('Files')) event.preventDefault(); });
   window.addEventListener('drop', event => { if (event.dataTransfer && event.dataTransfer.files.length) event.preventDefault(); });
-  window.addEventListener('beforeunload', () => { stopEstimate(); stopPreview(); if (state.task) state.task.abort(); for (const frame of state.frames) URL.revokeObjectURL(frame.url); if (state.video) URL.revokeObjectURL(state.video.url); if (state.result) URL.revokeObjectURL(state.result.url); });
+  window.addEventListener('beforeunload', () => { videoEditor.destroy(); stopEstimate(); stopPreview(); if (state.task) state.task.abort(); for (const frame of state.frames) URL.revokeObjectURL(frame.url); if (state.video) URL.revokeObjectURL(state.video.url); if (state.result) URL.revokeObjectURL(state.result.url); });
   renderFrames(); changed();
 })();
